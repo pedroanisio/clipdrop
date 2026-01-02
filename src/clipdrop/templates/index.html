@@ -175,11 +175,11 @@
                 confirmText: 'Delete',
                 onConfirm: async () => {
                     try {
-                        const response = await fetch(`/delete/${filename}`, { method: 'DELETE' });
+                        const response = await fetch(`/delete/${encodeURIComponent(filename)}`, { method: 'DELETE' });
                         const result = await response.json();
                         if (result.status === 'success') {
                             showToast('Deleted!', 'success');
-                            setTimeout(() => location.reload(), 5000);
+                            setTimeout(() => location.reload(), 1000);
                         } else {
                             showToast(result.message || 'Failed to delete.', 'error');
                         }

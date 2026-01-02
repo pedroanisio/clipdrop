@@ -1,0 +1,96 @@
+# Digital Ocean App Platform Specification
+# https://docs.digitalocean.com/products/app-platform/reference/app-spec/
+
+name: clipdrop
+
+services:
+  - name: web
+    dockerfile_path: Dockerfile
+    github:
+      # Update with your repository details
+      repo: your-org/webapp-fileuploader
+      branch: main
+      deploy_on_push: true
+
+    # HTTP configuration
+    http_port: 3010
+    routes:
+      - path: /
+
+    # Instance configuration
+    instance_size_slug: basic-xxs
+    instance_count: 1
+
+    # Health check
+    health_check:
+      http_path: /login
+      initial_delay_seconds: 10
+      period_seconds: 30
+
+    # Environment variables
+    envs:
+      # Flask secret key (generate a new one for production)
+      - key: SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+
+      # Encryption key for files at rest
+      - key: ENCRYPTION_KEY
+        scope: RUN_TIME
+        type: SECRET
+
+      # GitHub OAuth credentials
+      - key: GITHUB_OAUTH_CLIENT_ID
+        scope: RUN_TIME
+        type: SECRET
+
+      - key: GITHUB_OAUTH_CLIENT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+
+      # Database connection (references managed database)
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
+
+      # Storage configuration for Digital Ocean Spaces
+      - key: STORAGE_TYPE
+        scope: RUN_TIME
+        value: s3
+
+      - key: SPACES_BUCKET
+        scope: RUN_TIME
+        type: SECRET
+
+      - key: SPACES_ENDPOINT
+        scope: RUN_TIME
+        value: https://nyc3.digitaloceanspaces.com
+
+      - key: SPACES_REGION
+        scope: RUN_TIME
+        value: nyc3
+
+      - key: SPACES_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+
+      - key: SPACES_SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+
+      - key: SPACES_PREFIX
+        scope: RUN_TIME
+        value: uploads
+
+      # Flask environment
+      - key: FLASK_ENV
+        scope: RUN_TIME
+        value: production
+
+# Managed PostgreSQL database
+databases:
+  - name: db
+    engine: PG
+    version: "16"
+    production: false
+    cluster_name: clipdrop-db

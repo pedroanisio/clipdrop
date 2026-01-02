@@ -10,13 +10,78 @@
 <!-- Flash Messages -->
 {{ flash_messages() }}
 
+<!-- Folder Navigation -->
+<div class="page-card mb-4">
+    {{ section_header('Folders', 'fa-folder-tree', badge=folders | length ~ ' folders') }}
+    <div class="folder-header">
+        <div class="folder-breadcrumbs">
+            <a href="{{ url_for('shared_clipboard') }}">All Clipboard</a>
+            {% for crumb in breadcrumbs %}
+                <span class="breadcrumb-separator">/</span>
+                <a href="{{ url_for('shared_clipboard', folder_id=crumb.id) }}">{{ crumb.name }}</a>
+            {% endfor %}
+        </div>
+        <form id="folder-create-form" class="folder-create-form">
+            <input type="text" name="name" id="folder-name" class="form-control form-control-sm"
+                   placeholder="New folder name">
+            <input type="hidden" name="parent_id" value="{{ current_folder.id if current_folder }}">
+            <button type="submit" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-folder-plus" aria-hidden="true"></i> Create
+            </button>
+        </form>
+    </div>
+    {% if folders %}
+    <div class="folder-list">
+        {% for folder in folders %}
+        <div class="folder-row">
+            <a class="folder-link" href="{{ url_for('shared_clipboard', folder_id=folder.id) }}">
+                <i class="fas fa-folder" aria-hidden="true"></i>
+                <span>{{ folder.name }}</span>
+            </a>
+            <div class="folder-actions">
+                <button type="button" class="btn btn-outline-secondary btn-sm folder-rename-btn"
+                        data-id="{{ folder.id }}" data-name="{{ folder.name }}">
+                    Rename
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm folder-delete-btn"
+                        data-id="{{ folder.id }}">
+                    Delete
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">No folders in this location.</p>
+    {% endif %}
+</div>
+
 <!-- Quick Paste Section -->
 <div class="page-card mb-4">
     {{ section_header('Quick Paste', 'fa-paste') }}
     <form id="clipboard-form">
+        <input type="hidden" name="folder_id" value="{{ current_folder.id if current_folder }}">
         <div class="form-group">
             <label for="clipboard-text" class="sr-only">Text to save</label>
-            <textarea id="clipboard-text" class="form-control" rows="3" placeholder="Paste or type text here..."></textarea>
+            <textarea id="clipboard-text" name="clipboard_data" class="form-control" rows="3"
+                      placeholder="Paste or type text here..."></textarea>
+        </div>
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="clipboard-tags" class="sr-only">Tags</label>
+                <input id="clipboard-tags" name="tags" class="form-control" type="text"
+                       placeholder="Tags (comma-separated)">
+            </div>
+            <div class="form-group col-md-6 clipboard-options">
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" id="clipboard-favorite" name="favorite">
+                    <label class="form-check-label" for="clipboard-favorite">Favorite</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" id="clipboard-keep" name="keep">
+                    <label class="form-check-label" for="clipboard-keep">Keep beyond 24h</label>
+                </div>
+            </div>
         </div>
         <button type="submit" class="btn btn-primary">
             <i class="fas fa-save" aria-hidden="true"></i> Save to Clipboard
@@ -26,47 +91,93 @@
 
 <!-- Clipboard Items -->
 <div class="page-card">
-    {{ section_header('Recent Items', 'fa-history', badge=clipboard_files | length ~ ' items') }}
+    {{ section_header('Recent Items', 'fa-history', badge=clipboard_items | length ~ ' items') }}
 
-    {% if clipboard_files %}
+    {% if clipboard_items %}
     <div class="table-container">
         <table class="table clipboard-table">
             <thead>
                 <tr>
                     <th>Type</th>
-                    <th>File Name</th>
-                    <th>Size</th>
+                    <th>Item</th>
+                    <th>Tags</th>
                     <th>Created</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                {% for file in clipboard_files %}
+                {% for item in clipboard_items %}
                 <tr>
                     <td>
-                        <i class="fas {{ file_icon(file.extension) }}" aria-hidden="true"></i>
-                        <span class="sr-only">{{ file.extension or 'Text' }} file</span>
+                        <i class="fas {{ file_icon(item.extension) }}" aria-hidden="true"></i>
+                        <span class="sr-only">{{ item.extension or 'Text' }} file</span>
                     </td>
-                    <td class="filename-cell" title="{{ file.name }}">{{ file.name }}</td>
-                    <td>{{ file.size_human }}</td>
-                    <td>{{ file.creation_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td class="clipboard-item-cell">
+                        <div class="clipboard-item-name">
+                            {% if item.favorite %}
+                            <i class="fas fa-star text-warning" aria-hidden="true"></i>
+                            {% endif %}
+                            <span class="filename-truncate" title="{{ item.name }}">{{ item.name }}</span>
+                        </div>
+                        <div class="clipboard-item-meta">
+                            <span><i class="fas fa-weight" aria-hidden="true"></i> {{ item.size_human }}</span>
+                            {% if item.kept %}
+                            <span><i class="fas fa-infinity" aria-hidden="true"></i> Kept</span>
+                            {% else %}
+                            <span><i class="far fa-clock" aria-hidden="true"></i> 24h</span>
+                            {% endif %}
+                        </div>
+                    </td>
                     <td>
-                        <div class="btn-group-actions">
-                            {% if file.name.endswith('.txt') %}
-                            <button class="btn btn-primary btn-sm copy-content-btn" data-content="{{ file.content | e }}" aria-label="Copy {{ file.name }}">
+                        {% if item.tags %}
+                        <div class="tag-list">
+                            {% for tag in item.tags %}
+                            <span class="tag-badge">#{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="text-muted">No tags</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.creation_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        <div class="btn-group-actions clipboard-actions">
+                            {% if item.is_text %}
+                            <button class="btn btn-primary btn-sm copy-content-btn" data-content="{{ item.content | e }}"
+                                    aria-label="Copy {{ item.name }}">
                                 <i class="fas fa-copy" aria-hidden="true"></i>
                             </button>
                             {% endif %}
-                            <a href="{{ url_for('clipboard_file', filename=file.name) }}" class="btn btn-outline-primary btn-sm" aria-label="View {{ file.name }}">
+                            <a href="{{ url_for('clipboard_file', item_id=item.id) }}"
+                               class="btn btn-outline-primary btn-sm" aria-label="View {{ item.name }}">
                                 <i class="fas fa-eye" aria-hidden="true"></i>
                             </a>
-                            <button class="btn btn-success btn-sm share-btn" data-url="{{ url_for('clipboard_file', filename=file.name, _external=True) }}" aria-label="Copy link">
+                            <button class="btn btn-success btn-sm share-btn"
+                                    data-url="{{ url_for('clipboard_file', item_id=item.id, _external=True) }}"
+                                    aria-label="Copy link">
                                 <i class="fas fa-link" aria-hidden="true"></i>
                             </button>
-                            <a href="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="btn btn-info btn-sm" aria-label="Download" download>
+                            <a href="{{ url_for('clipboard_file_raw', item_id=item.id) }}"
+                               class="btn btn-info btn-sm" aria-label="Download" download>
                                 <i class="fas fa-download" aria-hidden="true"></i>
                             </a>
-                            <button class="btn btn-danger btn-sm delete-btn" data-filename="{{ file.name }}" aria-label="Delete">
+                            <a href="{{ url_for('edit_clipboard_item', item_id=item.id) }}"
+                               class="btn btn-outline-secondary btn-sm" aria-label="Edit {{ item.name }}">
+                                <i class="fas fa-pen" aria-hidden="true"></i>
+                            </a>
+                            <button class="btn btn-outline-warning btn-sm favorite-toggle"
+                                    data-id="{{ item.id }}" data-favorite="{{ 'true' if item.favorite else 'false' }}"
+                                    aria-label="Toggle favorite">
+                                <i class="{{ 'fas' if item.favorite else 'far' }} fa-star" aria-hidden="true"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm retention-toggle"
+                                    data-id="{{ item.id }}" data-keep="{{ 'true' if item.kept else 'false' }}"
+                                    aria-label="Toggle retention">
+                                <i class="fas {{ 'fa-infinity' if item.kept else 'fa-clock' }}" aria-hidden="true"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm clipboard-delete-btn" data-id="{{ item.id }}"
+                                    data-name="{{ item.name }}"
+                                    aria-label="Delete">
                                 <i class="fas fa-trash" aria-hidden="true"></i>
                             </button>
                         </div>
@@ -84,94 +195,4 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/clipboard.js') }}"></script>
-<script>
-    document.getElementById('clipboard-form').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const text = document.getElementById('clipboard-text').value.trim();
-
-        if (!text) {
-            showToast('Please enter some text', 'error');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('clipboard_data', text);
-
-        try {
-            const response = await fetch('/clipboard', { method: 'POST', body: formData });
-            const result = await response.json();
-
-            if (result.status === 'success') {
-                showToast('Saved to clipboard!', 'success');
-                setTimeout(() => location.reload(), 5000);
-            } else {
-                showToast(result.message || 'Failed to save', 'error');
-            }
-        } catch (error) {
-            showToast('Failed to save', 'error');
-        }
-    });
-
-    document.querySelectorAll('.copy-content-btn').forEach(button => {
-        button.addEventListener('click', async () => {
-            const content = button.getAttribute('data-content');
-            try {
-                await navigator.clipboard.writeText(content);
-                showToast('Copied to clipboard!', 'success');
-
-                const originalHtml = button.innerHTML;
-                button.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i>';
-                button.classList.add('btn-success');
-                button.classList.remove('btn-primary');
-
-                setTimeout(() => {
-                    button.innerHTML = originalHtml;
-                    button.classList.remove('btn-success');
-                    button.classList.add('btn-primary');
-                }, 2000);
-            } catch (err) {
-                showToast('Failed to copy', 'error');
-            }
-        });
-    });
-
-    document.querySelectorAll('.share-btn').forEach(button => {
-        button.addEventListener('click', async () => {
-            try {
-                await navigator.clipboard.writeText(button.getAttribute('data-url'));
-                showToast('Link copied!', 'success');
-            } catch (err) {
-                showToast('Failed to copy link', 'error');
-            }
-        });
-    });
-
-    document.querySelectorAll('.delete-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            const filename = button.getAttribute('data-filename');
-            const itemName = filename.length > 30 ? filename.substring(0, 30) + '...' : filename;
-
-            showConfirmModal({
-                title: 'Delete Clipboard Item',
-                message: `Are you sure you want to delete "${itemName}"? This action cannot be undone.`,
-                confirmText: 'Delete',
-                onConfirm: async () => {
-                    try {
-                        const response = await fetch(`/delete/clipboard/${filename}`, { method: 'DELETE' });
-                        const result = await response.json();
-
-                        if (result.status === 'success') {
-                            showToast('Deleted!', 'success');
-                            setTimeout(() => location.reload(), 5000);
-                        } else {
-                            showToast(result.message || 'Failed to delete', 'error');
-                        }
-                    } catch (error) {
-                        showToast('Failed to delete', 'error');
-                    }
-                }
-            });
-        });
-    });
-</script>
 {% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "macros.html" import page_header, section_header, flash_messages %}
+
+{% block title %}Edit Clipboard Item - ClipDrop{% endblock %}
+
+{% block content %}
+{{ page_header('Edit Clipboard Item', 'fa-pen', 'Update content, tags, and folder placement') }}
+
+{{ flash_messages() }}
+
+<div class="page-card">
+    {{ section_header('Details', 'fa-sliders-h') }}
+    <form method="post">
+        <div class="form-group">
+            <label for="item-name">Name</label>
+            <input type="text" class="form-control" id="item-name" name="name" value="{{ item.name }}" required>
+        </div>
+        <div class="form-group">
+            <label for="item-folder">Folder</label>
+            <select class="form-control" id="item-folder" name="folder_id">
+                <option value="">Root</option>
+                {% for folder in folder_options %}
+                <option value="{{ folder.id }}" {% if item.folder_id == folder.id %}selected{% endif %}>
+                    {{ folder.label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="item-tags">Tags</label>
+            <input type="text" class="form-control" id="item-tags" name="tags" value="{{ tags_value }}"
+                   placeholder="comma-separated">
+        </div>
+        <div class="form-group">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="item-favorite" name="favorite"
+                       {% if item.favorite %}checked{% endif %}>
+                <label class="form-check-label" for="item-favorite">Favorite</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="item-keep" name="keep"
+                       {% if item.expires_at is none %}checked{% endif %}>
+                <label class="form-check-label" for="item-keep">Keep beyond 24h</label>
+            </div>
+        </div>
+
+        {% if item.is_text %}
+        <div class="form-group">
+            <label for="item-content">Content</label>
+            <textarea id="item-content" name="content" class="form-control" rows="8">{{ content_text }}</textarea>
+        </div>
+        {% else %}
+        <div class="info-callout" role="status">
+            <div class="info-callout-icon">
+                <i class="fas fa-file" aria-hidden="true"></i>
+            </div>
+            <div class="info-callout-content">
+                <h3 class="info-callout-title">Binary item</h3>
+                <p class="info-callout-text">This item contains a non-text payload and can only be renamed or refiled.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="btn-group mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save" aria-hidden="true"></i> Save Changes
+            </button>
+            <a href="{{ url_for('shared_clipboard', folder_id=item.folder_id) }}" class="btn btn-outline-secondary">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

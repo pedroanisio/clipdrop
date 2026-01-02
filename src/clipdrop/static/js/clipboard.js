@@ -1,22 +1,16 @@
 /**
  * Clipboard Module
- * Handles clipboard copy, share, and delete operations
+ * Handles clipboard create, copy, share, delete, and folder actions.
  */
 
 (function() {
     'use strict';
 
-    /**
-     * Copy text to clipboard
-     * @param {string} text - Text to copy
-     * @returns {Promise<boolean>} Success status
-     */
     async function copyToClipboard(text) {
         try {
             await navigator.clipboard.writeText(text);
             return true;
         } catch (err) {
-            // Fallback for older browsers
             const textarea = document.createElement('textarea');
             textarea.value = text;
             textarea.style.position = 'fixed';
@@ -34,149 +28,302 @@
         }
     }
 
-    /**
-     * Share content using Web Share API or fallback to copy
-     * @param {Object} shareData - Share data object
-     * @param {string} shareData.title - Share title
-     * @param {string} shareData.text - Share text
-     * @param {string} shareData.url - Share URL
-     * @returns {Promise<boolean>} Success status
-     */
-    async function shareContent(shareData) {
-        if (navigator.share) {
-            try {
-                await navigator.share(shareData);
-                return true;
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                    console.error('Share failed:', err);
-                }
-                return false;
-            }
-        } else {
-            // Fallback: copy URL or text to clipboard
-            const textToCopy = shareData.url || shareData.text || '';
-            const success = await copyToClipboard(textToCopy);
-            if (success && window.showToast) {
-                window.showToast('Link copied to clipboard!', 'success');
-            }
-            return success;
-        }
-    }
-
-    /**
-     * Delete a clipboard item
-     * @param {string|number} itemId - Item ID to delete
-     * @returns {Promise<Object>} Response data
-     */
-    async function deleteClipboardItem(itemId) {
-        const response = await fetch(`/clipboard/${itemId}/delete`, {
+    async function postJson(url, payload) {
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify(payload)
         });
         return response.json();
     }
 
-    /**
-     * Initialize clipboard item event handlers
-     * Call this after DOM is ready or after dynamic content is added
-     */
-    function initClipboardHandlers() {
-        // Copy buttons
-        document.querySelectorAll('.copy-btn').forEach(function(btn) {
-            btn.addEventListener('click', async function() {
-                const content = this.dataset.content;
+    function handleClipboardForm() {
+        const clipboardForm = document.getElementById('clipboard-form');
+        if (!clipboardForm) return;
+
+        clipboardForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const textArea = clipboardForm.querySelector('[name="clipboard_data"]');
+            const text = textArea ? textArea.value.trim() : '';
+            if (!text) {
+                if (window.showToast) {
+                    window.showToast('Please enter some text', 'error');
+                }
+                return;
+            }
+
+            const formData = new FormData(clipboardForm);
+
+            try {
+                const response = await fetch('/clipboard', { method: 'POST', body: formData });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    if (window.showToast) {
+                        window.showToast('Saved to clipboard!', 'success');
+                    }
+                    setTimeout(() => location.reload(), 1000);
+                } else if (window.showToast) {
+                    window.showToast(result.message || 'Failed to save', 'error');
+                }
+            } catch (error) {
+                if (window.showToast) {
+                    window.showToast('Failed to save', 'error');
+                }
+            }
+        });
+    }
+
+    function handleCopyButtons() {
+        document.querySelectorAll('.copy-content-btn').forEach((button) => {
+            button.addEventListener('click', async () => {
+                const content = button.getAttribute('data-content');
                 const success = await copyToClipboard(content);
                 if (window.showToast) {
-                    if (success) {
-                        window.showToast('Copied to clipboard!', 'success');
-                    } else {
-                        window.showToast('Failed to copy to clipboard', 'error');
-                    }
+                    window.showToast(success ? 'Copied to clipboard!' : 'Failed to copy', success ? 'success' : 'error');
+                }
+
+                if (success) {
+                    const originalHtml = button.innerHTML;
+                    button.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i>';
+                    button.classList.add('btn-success');
+                    button.classList.remove('btn-primary');
+
+                    setTimeout(() => {
+                        button.innerHTML = originalHtml;
+                        button.classList.remove('btn-success');
+                        button.classList.add('btn-primary');
+                    }, 2000);
                 }
             });
         });
+    }
 
-        // Share buttons for clipboard items
-        document.querySelectorAll('.clipboard-share-btn').forEach(function(btn) {
-            btn.addEventListener('click', async function() {
-                const content = this.dataset.content;
-                const itemId = this.dataset.id;
-                await shareContent({
-                    title: 'Shared Clipboard Item',
-                    text: content,
-                    url: window.location.origin + '/clipboard/' + itemId
-                });
+    function handleShareButtons() {
+        document.querySelectorAll('.share-btn').forEach((button) => {
+            button.addEventListener('click', async () => {
+                const url = button.getAttribute('data-url');
+                const success = await copyToClipboard(url);
+                if (window.showToast) {
+                    window.showToast(success ? 'Link copied!' : 'Failed to copy link', success ? 'success' : 'error');
+                }
             });
         });
+    }
 
-        // Delete buttons for clipboard items
-        document.querySelectorAll('.clipboard-delete-btn').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                const itemId = this.dataset.id;
-                const row = this.closest('tr, .clipboard-item, .card');
+    function handleDeleteButtons() {
+        document.querySelectorAll('.clipboard-delete-btn').forEach((button) => {
+            button.addEventListener('click', () => {
+                const itemId = button.getAttribute('data-id');
+                const name = button.getAttribute('data-name') || 'this item';
+                const itemName = name.length > 30 ? name.substring(0, 30) + '...' : name;
+
+                const doDelete = async () => {
+                    try {
+                        const result = await postJson(`/clipboard/${itemId}/delete`, {});
+                        if (result.status === 'success') {
+                            if (window.showToast) {
+                                window.showToast('Deleted!', 'success');
+                            }
+                            setTimeout(() => location.reload(), 1000);
+                        } else if (window.showToast) {
+                            window.showToast(result.message || 'Failed to delete', 'error');
+                        }
+                    } catch (error) {
+                        if (window.showToast) {
+                            window.showToast('Failed to delete', 'error');
+                        }
+                    }
+                };
 
                 if (window.showConfirmModal) {
                     window.showConfirmModal({
                         title: 'Delete Clipboard Item',
-                        message: 'Are you sure you want to delete this clipboard item? This action cannot be undone.',
+                        message: `Are you sure you want to delete "${itemName}"? This action cannot be undone.`,
                         confirmText: 'Delete',
-                        confirmIcon: 'fa-trash',
-                        onConfirm: async function() {
-                            try {
-                                const data = await deleteClipboardItem(itemId);
-                                if (data.success) {
-                                    if (row) row.remove();
-                                    if (window.showToast) {
-                                        window.showToast('Clipboard item deleted successfully', 'success');
-                                    }
-                                    // Check if table is empty
-                                    const tableBody = document.querySelector('.clipboard-table tbody');
-                                    if (tableBody && tableBody.children.length === 0) {
-                                        location.reload();
-                                    }
-                                } else {
-                                    if (window.showToast) {
-                                        window.showToast(data.error || 'Failed to delete item', 'error');
-                                    }
-                                }
-                            } catch (err) {
-                                if (window.showToast) {
-                                    window.showToast('Error deleting item', 'error');
-                                }
-                            }
-                        }
+                        onConfirm: doDelete
                     });
-                } else {
-                    // Fallback to confirm dialog
-                    if (confirm('Are you sure you want to delete this item?')) {
-                        deleteClipboardItem(itemId).then(function(data) {
-                            if (data.success) {
-                                if (row) row.remove();
-                                location.reload();
-                            }
-                        });
+                } else if (confirm(`Delete "${itemName}"?`)) {
+                    doDelete();
+                }
+            });
+        });
+    }
+
+    function handleFavoriteToggles() {
+        document.querySelectorAll('.favorite-toggle').forEach((button) => {
+            button.addEventListener('click', async () => {
+                const itemId = button.getAttribute('data-id');
+                const current = button.getAttribute('data-favorite') === 'true';
+                const target = !current;
+                try {
+                    const result = await postJson(`/clipboard/${itemId}/favorite`, { favorite: target });
+                    if (result.status === 'success') {
+                        if (window.showToast) {
+                            window.showToast(result.favorite ? 'Added to favorites' : 'Removed from favorites', 'success');
+                        }
+                        setTimeout(() => location.reload(), 500);
+                    } else if (window.showToast) {
+                        window.showToast(result.message || 'Failed to update favorite', 'error');
+                    }
+                } catch (error) {
+                    if (window.showToast) {
+                        window.showToast('Failed to update favorite', 'error');
                     }
                 }
             });
         });
     }
 
-    // Initialize on DOM ready
+    function handleRetentionToggles() {
+        document.querySelectorAll('.retention-toggle').forEach((button) => {
+            button.addEventListener('click', async () => {
+                const itemId = button.getAttribute('data-id');
+                const current = button.getAttribute('data-keep') === 'true';
+                const target = !current;
+                try {
+                    const result = await postJson(`/clipboard/${itemId}/retention`, { keep: target });
+                    if (result.status === 'success') {
+                        if (window.showToast) {
+                            window.showToast(
+                                result.kept ? 'Kept indefinitely' : 'Retention restored',
+                                'success'
+                            );
+                        }
+                        setTimeout(() => location.reload(), 500);
+                    } else if (window.showToast) {
+                        window.showToast(result.message || 'Failed to update retention', 'error');
+                    }
+                } catch (error) {
+                    if (window.showToast) {
+                        window.showToast('Failed to update retention', 'error');
+                    }
+                }
+            });
+        });
+    }
+
+    function handleFolderCreate() {
+        const folderForm = document.getElementById('folder-create-form');
+        if (!folderForm) return;
+
+        folderForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(folderForm);
+            const name = formData.get('name');
+            if (!name || !name.trim()) {
+                if (window.showToast) {
+                    window.showToast('Folder name is required', 'error');
+                }
+                return;
+            }
+
+            try {
+                const response = await fetch('/clipboard/folders', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    if (window.showToast) {
+                        window.showToast('Folder created', 'success');
+                    }
+                    setTimeout(() => location.reload(), 500);
+                } else if (window.showToast) {
+                    window.showToast(result.message || 'Failed to create folder', 'error');
+                }
+            } catch (error) {
+                if (window.showToast) {
+                    window.showToast('Failed to create folder', 'error');
+                }
+            }
+        });
+    }
+
+    function handleFolderRename() {
+        document.querySelectorAll('.folder-rename-btn').forEach((button) => {
+            button.addEventListener('click', async () => {
+                const folderId = button.getAttribute('data-id');
+                const currentName = button.getAttribute('data-name') || '';
+                const newName = prompt('Rename folder', currentName);
+                if (!newName || !newName.trim()) {
+                    return;
+                }
+                try {
+                    const result = await postJson(`/clipboard/folders/${folderId}/rename`, { name: newName.trim() });
+                    if (result.status === 'success') {
+                        if (window.showToast) {
+                            window.showToast('Folder renamed', 'success');
+                        }
+                        setTimeout(() => location.reload(), 500);
+                    } else if (window.showToast) {
+                        window.showToast(result.message || 'Failed to rename folder', 'error');
+                    }
+                } catch (error) {
+                    if (window.showToast) {
+                        window.showToast('Failed to rename folder', 'error');
+                    }
+                }
+            });
+        });
+    }
+
+    function handleFolderDelete() {
+        document.querySelectorAll('.folder-delete-btn').forEach((button) => {
+            button.addEventListener('click', () => {
+                const folderId = button.getAttribute('data-id');
+                const doDelete = async () => {
+                    try {
+                        const result = await postJson(`/clipboard/folders/${folderId}/delete`, {});
+                        if (result.status === 'success') {
+                            if (window.showToast) {
+                                window.showToast('Folder deleted', 'success');
+                            }
+                            setTimeout(() => location.reload(), 500);
+                        } else if (window.showToast) {
+                            window.showToast(result.message || 'Failed to delete folder', 'error');
+                        }
+                    } catch (error) {
+                        if (window.showToast) {
+                            window.showToast('Failed to delete folder', 'error');
+                        }
+                    }
+                };
+
+                if (window.showConfirmModal) {
+                    window.showConfirmModal({
+                        title: 'Delete Folder',
+                        message: 'Delete this folder? It must be empty before removal.',
+                        confirmText: 'Delete',
+                        onConfirm: doDelete
+                    });
+                } else if (confirm('Delete this folder? It must be empty before removal.')) {
+                    doDelete();
+                }
+            });
+        });
+    }
+
+    function initClipboardHandlers() {
+        handleClipboardForm();
+        handleCopyButtons();
+        handleShareButtons();
+        handleDeleteButtons();
+        handleFavoriteToggles();
+        handleRetentionToggles();
+        handleFolderCreate();
+        handleFolderRename();
+        handleFolderDelete();
+    }
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initClipboardHandlers);
     } else {
         initClipboardHandlers();
     }
 
-    // Export globally
     window.ClipDrop = window.ClipDrop || {};
     window.ClipDrop.clipboard = {
         copy: copyToClipboard,
-        share: shareContent,
-        deleteItem: deleteClipboardItem,
         init: initClipboardHandlers
     };
 })();

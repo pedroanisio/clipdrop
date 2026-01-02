@@ -1,23 +1,23 @@
 {% extends "base.html" %}
 {% from "macros.html" import page_header, section_header, empty_state, file_icon, button %}
 
-{% block title %}{{ file.name if file else 'Not Found' }} - ClipDrop{% endblock %}
+{% block title %}{{ item.name if item else 'Not Found' }} - ClipDrop{% endblock %}
 
 {% block content %}
-{% if file %}
+{% if item %}
 <!-- Page Header -->
 <div class="page-header mb-4">
     <a href="{{ url_for('shared_clipboard') }}" class="btn btn-outline-primary btn-sm mb-3">
         <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Clipboard
     </a>
     <h1 class="page-title">
-        <i class="fas {{ file_icon(file.extension) }}" aria-hidden="true"></i>
+        <i class="fas {{ file_icon(item.extension) }}" aria-hidden="true"></i>
         Shared Content
     </h1>
     <p class="page-subtitle">
-        <i class="fas fa-clock" aria-hidden="true"></i> {{ file.creation_time.strftime('%Y-%m-%d %H:%M:%S') }}
+        <i class="fas fa-clock" aria-hidden="true"></i> {{ item.creation_time.strftime('%Y-%m-%d %H:%M:%S') }}
         &nbsp;&middot;&nbsp;
-        <i class="fas fa-weight" aria-hidden="true"></i> {{ file.size_human }}
+        <i class="fas fa-weight" aria-hidden="true"></i> {{ item.size_human }}
     </p>
 </div>
 
@@ -34,17 +34,17 @@
             <button id="share-btn" class="btn btn-success btn-sm" data-url="{{ request.url }}" aria-label="Copy shareable link">
                 <i class="fas fa-link" aria-hidden="true"></i> Link
             </button>
-            <a href="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="btn btn-info btn-sm" download aria-label="Download file">
+            <a href="{{ url_for('clipboard_file_raw', item_id=item.id) }}" class="btn btn-info btn-sm" download aria-label="Download file">
                 <i class="fas fa-download" aria-hidden="true"></i> Download
             </a>
         </div>
     </div>
 
     {% if is_text %}
-    <div class="content-text" id="content-text">{{ file.content | e }}</div>
+    <div class="content-text" id="content-text">{{ item.content | e }}</div>
     {% else %}
     <div class="image-container">
-        <img src="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="content-image" alt="Shared Image: {{ file.name }}">
+        <img src="{{ url_for('clipboard_file_raw', item_id=item.id) }}" class="content-image" alt="Shared Image: {{ item.name }}">
     </div>
     {% endif %}
 </div>

@@ -14,11 +14,36 @@ services:
       - PYTHONPATH=/app/src
       - UPLOAD_FOLDER=/app/uploads
       - CLIPBOARD_FOLDER=/app/clipboard
+      - DATABASE_URL=postgresql://clipdrop:clipdrop@db:5432/clipdrop
     env_file:
       - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=clipdrop
+      - POSTGRES_PASSWORD=clipdrop
+      - POSTGRES_DB=clipdrop
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clipdrop -d clipdrop"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
     networks:
       - app-network
 
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  postgres_data_dev:

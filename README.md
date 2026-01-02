@@ -11,7 +11,8 @@ encrypted at rest and are cleaned up automatically every 24 hours.
 - GitHub OAuth sign-in (required to access the app)
 - AES-256-GCM encryption for files at rest (optional)
 - Automatic cleanup of files after 24 hours
-- Local SQLite storage for user accounts and OAuth tokens
+- Pluggable storage backends (local filesystem or S3-compatible)
+- Production-ready for Digital Ocean App Platform
 
 ## Supported File Types
 
@@ -20,8 +21,9 @@ encrypted at rest and are cleaned up automatically every 24 hours.
 ## Technology Stack
 
 - Flask, Flask-Login, Flask-Dance
-- Flask-SQLAlchemy + SQLite (default)
+- Flask-SQLAlchemy + SQLite/PostgreSQL
 - APScheduler
+- boto3 (S3/Spaces storage)
 - Bootstrap + JavaScript
 
 ## Setup and Installation
@@ -33,25 +35,41 @@ encrypted at rest and are cleaned up automatically every 24 hours.
 
 ### Environment Variables
 
-Create a `.env` file in the project root directory (required for local/dev and Docker):
+Copy `.env.example` to `.env` and configure:
 
+```sh
+cp .env.example .env
+```
+
+**Required variables:**
 ```
 SECRET_KEY=your-unique-secret
-ENCRYPTION_KEY=your-base64-encoded-key
 GITHUB_OAUTH_CLIENT_ID=your-client-id
 GITHUB_OAUTH_CLIENT_SECRET=your-secret
-DATABASE_URL=sqlite:///clipdrop.db
-UPLOAD_FOLDER=uploads
-CLIPBOARD_FOLDER=clipboard
+```
+
+**Optional variables:**
+```
+ENCRYPTION_KEY=your-base64-encoded-key   # AES-256 encryption (recommended)
+DATABASE_URL=sqlite:///clipdrop.db       # or postgresql://...
 PORT=3000
 ```
 
-- `SECRET_KEY` is required to boot the app.
-- `ENCRYPTION_KEY` is optional; when unset, files are stored unencrypted.
-- GitHub OAuth credentials are required to sign in.
-- `DATABASE_URL`, `UPLOAD_FOLDER`, `CLIPBOARD_FOLDER`, and `PORT` are optional overrides.
+**Storage configuration:**
+```
+STORAGE_TYPE=local                        # "local" or "s3"
+UPLOAD_FOLDER=uploads                     # for local storage
 
-Generate a `.env` with `SECRET_KEY` + `ENCRYPTION_KEY`:
+# For S3/Spaces storage:
+SPACES_BUCKET=your-bucket-name
+SPACES_ENDPOINT=https://nyc3.digitaloceanspaces.com
+SPACES_REGION=nyc3
+SPACES_ACCESS_KEY=your-access-key
+SPACES_SECRET_KEY=your-secret-key
+SPACES_PREFIX=uploads
+```
+
+Generate secrets with:
 ```sh
 ./scripts/generate_secret.sh
 ```
@@ -108,6 +126,7 @@ clipdrop/
 │   ├── crypto.py
 │   ├── extensions.py
 │   ├── models.py
+│   ├── storage.py          # Storage abstraction (local/S3)
 │   ├── static/
 │   │   └── styles.css
 │   └── templates/
@@ -116,6 +135,8 @@ clipdrop/
 │       ├── login.html
 │       ├── clipboard_view.html
 │       └── shared_clipboard.html
+├── .do/
+│   └── app.yaml            # Digital Ocean App Platform spec
 ├── tests/
 ├── docs/
 ├── scripts/
@@ -123,6 +144,29 @@ clipdrop/
 ├── Dockerfile
 └── docker-compose.yaml
 ```
+
+## Deployment
+
+### Digital Ocean App Platform
+
+The project includes a ready-to-use App Platform specification in `.do/app.yaml`.
+
+**Prerequisites:**
+1. Create a Digital Ocean Space (for file storage)
+2. Generate Spaces access keys (API > Spaces Keys)
+3. Register a GitHub OAuth app with callback URL: `https://your-app.ondigitalocean.app/login/github/authorized`
+
+**Deploy:**
+1. Push to GitHub
+2. In DO Console: Apps > Create App > Select your repo
+3. Configure environment variables (secrets) in the dashboard
+4. Deploy
+
+The app spec includes:
+- Managed PostgreSQL database
+- Spaces integration for persistent file storage
+- Health checks
+- Auto-deploy on push
 
 ### Contributing
 

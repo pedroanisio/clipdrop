@@ -1560,6 +1560,102 @@ h6 {
   flex-wrap: wrap;
 }
 
+.clipboard-item-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.clipboard-actions {
+  flex-wrap: wrap;
+}
+
+.clipboard-options {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.tag-badge {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.folder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.folder-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  color: var(--color-text-secondary);
+}
+
+.breadcrumb-separator {
+  color: var(--color-text-muted);
+}
+
+.folder-create-form {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.folder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.folder-row:last-child {
+  border-bottom: none;
+}
+
+.folder-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.folder-link:hover {
+  color: var(--color-primary);
+}
+
+.folder-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
 .clipboard-image-container {
   margin-top: var(--space-4);
   text-align: center;
