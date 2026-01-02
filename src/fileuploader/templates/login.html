@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-page-header">
+        <h1 class="page-title"><i class="fas fa-user-lock" aria-hidden="true"></i> Sign in</h1>
+        <p class="page-subtitle">Connect your GitHub account to access uploads and clipboard.</p>
+    </div>
+
+    <div class="page-card auth-card">
+        <div class="section-header auth-card-header">
+            <h2 class="section-title"><i class="fab fa-github" aria-hidden="true"></i> GitHub</h2>
+            <span class="section-badge">OAuth 2.0</span>
+        </div>
+        <p class="auth-card-text">
+            We create a local account using your GitHub profile and store your login details securely in SQLite.
+        </p>
+        <ul class="auth-list" aria-label="Authentication benefits">
+            <li class="auth-list-item">
+                <i class="fas fa-check-circle" aria-hidden="true"></i>
+                <span>No passwords stored in this app</span>
+            </li>
+            <li class="auth-list-item">
+                <i class="fas fa-check-circle" aria-hidden="true"></i>
+                <span>Sign out anytime from the top navigation</span>
+            </li>
+            <li class="auth-list-item">
+                <i class="fas fa-check-circle" aria-hidden="true"></i>
+                <span>Protects all upload and clipboard routes</span>
+            </li>
+        </ul>
+        {% if oauth_enabled %}
+            <a class="btn btn-primary btn-lg auth-button" href="{{ url_for('github.login') }}">
+                <i class="fab fa-github" aria-hidden="true"></i>
+                <span>Continue with GitHub</span>
+            </a>
+        {% else %}
+            <div class="info-callout warning-callout" role="alert" aria-label="OAuth setup required">
+                <div class="info-callout-icon">
+                    <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                </div>
+                <div class="info-callout-content">
+                    <h3 class="info-callout-title">GitHub OAuth not configured</h3>
+                    <p class="info-callout-text">
+                        Set <code>GITHUB_OAUTH_CLIENT_ID</code> and <code>GITHUB_OAUTH_CLIENT_SECRET</code> in your environment to enable authentication.
+                    </p>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-lg auth-button" disabled aria-disabled="true">
+                <i class="fab fa-github" aria-hidden="true"></i>
+                <span>Continue with GitHub</span>
+            </button>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

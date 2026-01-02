@@ -24,6 +24,7 @@
                     <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
                     <span>File Uploader</span>
                 </a>
+                {% if current_user.is_authenticated %}
                 <ul class="nav nav-desktop">
                     <li class="nav-item">
                         <a href="{{ url_for('upload_file') }}" class="nav-link {% if active_page == 'files' %}is-active{% endif %}">
@@ -38,9 +39,33 @@
                         </a>
                     </li>
                 </ul>
+                {% endif %}
+                <div class="nav-actions">
+                    {% if current_user.is_authenticated %}
+                        <div class="user-pill" aria-label="Signed in user">
+                            {% if current_user.avatar_url %}
+                                <img src="{{ current_user.avatar_url }}" alt="" class="user-avatar">
+                            {% else %}
+                                <span class="user-avatar-placeholder" aria-hidden="true">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                            {% endif %}
+                            <span class="user-name">{{ current_user.username }}</span>
+                        </div>
+                        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-primary btn-sm">
+                            Sign out
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm">
+                            Sign in
+                        </a>
+                    {% endif %}
+                </div>
+                {% if current_user.is_authenticated %}
                 <button class="nav-mobile-toggle" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
                     <i class="fas fa-bars" aria-hidden="true"></i>
                 </button>
+                {% endif %}
             </div>
         </nav>
     </header>
@@ -57,14 +82,25 @@
             </button>
         </div>
         <div class="mobile-nav-body">
-            <a href="{{ url_for('upload_file') }}" class="mobile-nav-link {% if active_page == 'files' %}is-active{% endif %}">
-                <i class="fas fa-folder-open mobile-nav-icon" aria-hidden="true"></i>
-                <span>Files</span>
-            </a>
-            <a href="{{ url_for('shared_clipboard') }}" class="mobile-nav-link {% if active_page == 'clipboard' %}is-active{% endif %}">
-                <i class="fas fa-clipboard mobile-nav-icon" aria-hidden="true"></i>
-                <span>Clipboard</span>
-            </a>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('upload_file') }}" class="mobile-nav-link {% if active_page == 'files' %}is-active{% endif %}">
+                    <i class="fas fa-folder-open mobile-nav-icon" aria-hidden="true"></i>
+                    <span>Files</span>
+                </a>
+                <a href="{{ url_for('shared_clipboard') }}" class="mobile-nav-link {% if active_page == 'clipboard' %}is-active{% endif %}">
+                    <i class="fas fa-clipboard mobile-nav-icon" aria-hidden="true"></i>
+                    <span>Clipboard</span>
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="mobile-nav-link">
+                    <i class="fas fa-sign-out-alt mobile-nav-icon" aria-hidden="true"></i>
+                    <span>Sign out</span>
+                </a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}" class="mobile-nav-link">
+                    <i class="fas fa-sign-in-alt mobile-nav-icon" aria-hidden="true"></i>
+                    <span>Sign in</span>
+                </a>
+            {% endif %}
         </div>
     </nav>
 
@@ -75,7 +111,8 @@
         </div>
     </main>
 
-    <!-- Bottom Navigation for Mobile -->
+    <!-- Bottom Navigation for Mobile (only for authenticated users) -->
+    {% if current_user.is_authenticated %}
     <nav class="bottom-nav" aria-label="Mobile navigation">
         <a href="{{ url_for('upload_file') }}" class="bottom-nav-item {% if active_page == 'files' %}is-active{% endif %}">
             <i class="fas fa-folder-open bottom-nav-icon" aria-hidden="true"></i>
@@ -86,6 +123,7 @@
             <span>Clipboard</span>
         </a>
     </nav>
+    {% endif %}
 
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>

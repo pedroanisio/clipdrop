@@ -12,6 +12,7 @@ from pathlib import Path
 from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 from flask import (
+    Blueprint,
     Flask,
     flash,
     jsonify,
@@ -21,9 +22,15 @@ from flask import (
     send_file,
     url_for,
 )
+from flask_dance.consumer import oauth_authorized
+from flask_dance.contrib.github import make_github_blueprint
+from flask_login import current_user, login_required, login_user, logout_user
+from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
 from fileuploader.crypto import encrypt_data, load_key_from_env, safe_decrypt
+from fileuploader.extensions import db, login_manager
+from fileuploader.models import OAuth, User
 
 # Load environment variables
 load_dotenv()
@@ -70,6 +77,11 @@ MIMETYPE_MAP = {
 _encryption_key = None
 
 
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.get(User, int(user_id))
+
+
 def get_encryption_key():
     """Get the encryption key, loading it if necessary."""
     global _encryption_key
@@ -109,14 +121,26 @@ def create_app(config=None):
     app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "uploads")
     app.config["CLIPBOARD_FOLDER"] = os.getenv("CLIPBOARD_FOLDER", "clipboard")
     app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024 * 1024  # 10GB
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///fileuploader.db")
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # Apply any additional configuration
     if config:
         app.config.update(config)
 
+    db.init_app(app)
+    login_manager.init_app(app)
+    login_manager.login_view = "auth.login"
+    login_manager.login_message_category = "warning"
+
+    with app.app_context():
+        db.create_all()
+
     # Ensure upload and clipboard folders exist
     for folder in [app.config["UPLOAD_FOLDER"], app.config["CLIPBOARD_FOLDER"]]:
         os.makedirs(folder, exist_ok=True)
+
+    register_auth(app)
 
     # Register routes
     register_routes(app)
@@ -127,10 +151,119 @@ def create_app(config=None):
     return app
 
 
+def register_auth(app):
+    """Register authentication routes and OAuth configuration."""
+    client_id = os.getenv("GITHUB_OAUTH_CLIENT_ID")
+    client_secret = os.getenv("GITHUB_OAUTH_CLIENT_SECRET")
+    oauth_enabled = bool(client_id and client_secret)
+    app.config["OAUTH_ENABLED"] = oauth_enabled
+
+    auth_bp = Blueprint("auth", __name__)
+
+    @auth_bp.route("/login")
+    def login():
+        if current_user.is_authenticated:
+            return redirect(url_for("upload_file"))
+        return render_template("login.html", oauth_enabled=app.config["OAUTH_ENABLED"])
+
+    @auth_bp.route("/logout")
+    @login_required
+    def logout():
+        logout_user()
+        flash("Signed out successfully.", "success")
+        return redirect(url_for("auth.login"))
+
+    app.register_blueprint(auth_bp)
+
+    if not oauth_enabled:
+        logger.warning("GitHub OAuth credentials are not configured.")
+        return
+
+    github_bp = make_github_blueprint(
+        client_id=client_id,
+        client_secret=client_secret,
+        scope="read:user,user:email",
+    )
+    app.register_blueprint(github_bp, url_prefix="/login")
+
+    @oauth_authorized.connect_via(github_bp)
+    def github_logged_in(blueprint, token):
+        if not token:
+            flash("GitHub login failed. Please try again.", "danger")
+            return False
+
+        resp = blueprint.session.get("/user")
+        if not resp.ok:
+            flash("Could not fetch your GitHub profile.", "danger")
+            return False
+
+        github_info = resp.json()
+        github_user_id = str(github_info.get("id", ""))
+        if not github_user_id:
+            flash("GitHub login did not return a user id.", "danger")
+            return False
+
+        username = github_info.get("login", "github-user")
+        avatar_url = github_info.get("avatar_url")
+
+        oauth = OAuth.query.filter_by(
+            provider=blueprint.name,
+            provider_user_id=github_user_id,
+        ).first()
+        user = User.query.filter_by(github_id=github_user_id).first()
+
+        try:
+            if user is None:
+                user = User(
+                    github_id=github_user_id,
+                    username=username,
+                    avatar_url=avatar_url,
+                )
+                db.session.add(user)
+            else:
+                user.username = username
+                user.avatar_url = avatar_url
+
+            if oauth is None:
+                oauth = OAuth(
+                    provider=blueprint.name,
+                    provider_user_id=github_user_id,
+                    token=token,
+                    user=user,
+                )
+                db.session.add(oauth)
+            else:
+                oauth.token = token
+                oauth.user = user
+
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            user = User.query.filter_by(github_id=github_user_id).first()
+            oauth = OAuth.query.filter_by(
+                provider=blueprint.name,
+                provider_user_id=github_user_id,
+            ).first()
+            if user and oauth:
+                oauth.user = user
+                oauth.token = token
+                user.username = username
+                user.avatar_url = avatar_url
+                db.session.commit()
+            else:
+                flash("Sign in failed. Please try again.", "danger")
+                return False
+
+        login_user(user)
+        flash("Signed in with GitHub.", "success")
+        return False
+
+
 def register_routes(app):
     """Register all application routes."""
 
     @app.route("/", methods=["GET", "POST"])
+    @login_required
     def upload_file():
         if request.method == "POST":
             if "file" not in request.files:
@@ -201,6 +334,7 @@ def register_routes(app):
         )
 
     @app.route("/uploads/<filename>")
+    @login_required
     def uploaded_file(filename):
         """Serve uploaded file, decrypting if necessary."""
         filename = secure_filename(filename)
@@ -218,6 +352,7 @@ def register_routes(app):
             return jsonify({"status": "error", "message": "Failed to read file"}), 500
 
     @app.route("/clipboard/<filename>")
+    @login_required
     def clipboard_file(filename):
         """View clipboard content in a nice template."""
         file_path = os.path.join(app.config["CLIPBOARD_FOLDER"], filename)
@@ -237,6 +372,7 @@ def register_routes(app):
         )
 
     @app.route("/clipboard/raw/<filename>")
+    @login_required
     def clipboard_file_raw(filename):
         """Serve raw clipboard file for download, decrypting if necessary."""
         filename = secure_filename(filename)
@@ -263,6 +399,7 @@ def register_routes(app):
             return jsonify({"status": "error", "message": "Failed to read file"}), 500
 
     @app.route("/shared-clipboard")
+    @login_required
     def shared_clipboard():
         clipboard_files = [
             get_file_properties(f, app.config["CLIPBOARD_FOLDER"])
@@ -276,6 +413,7 @@ def register_routes(app):
         )
 
     @app.route("/clipboard", methods=["POST"])
+    @login_required
     def clipboard():
         data = request.form["clipboard_data"]
         if "image" in request.files:
@@ -297,6 +435,7 @@ def register_routes(app):
             )
 
     @app.route("/delete/<path:filename>", methods=["DELETE"])
+    @login_required
     def delete_file(filename):
         filename = secure_filename(filename)
         file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
@@ -311,6 +450,7 @@ def register_routes(app):
         return jsonify({"status": "error", "message": "File not found"}), 404
 
     @app.route("/delete/clipboard/<path:filename>", methods=["DELETE"])
+    @login_required
     def delete_clipboard_file(filename):
         filename = secure_filename(filename)
         file_path = os.path.join(app.config["CLIPBOARD_FOLDER"], filename)
