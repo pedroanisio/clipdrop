@@ -18,8 +18,9 @@
             <input type="file" name="file" id="file-input" class="form-control-file d-none">
         </div>
         <div id="drag-drop-area" class="drag-drop-area">
-            <i class="fas fa-cloud-upload-alt fa-3x mb-3" aria-hidden="true"></i>
-            <p>Drag & Drop files here or click to select files</p>
+            <i class="fas fa-cloud-upload-alt upload-icon" aria-hidden="true"></i>
+            <p>Drag & drop files here or click to browse</p>
+            <small>Supported: {{ allowed_extensions | join(', ') }}</small>
         </div>
         <div id="upload-progress" class="progress progress-lg mt-3" style="display: none;">
             <div id="progress-bar" class="progress-bar is-animated"
