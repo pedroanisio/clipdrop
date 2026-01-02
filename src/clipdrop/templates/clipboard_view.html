@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Shared Clipboard - {{ file.name if file else 'Not Found' }}{% endblock %}
+{% block title %}{{ file.name if file else 'Not Found' }} - ClipDrop{% endblock %}
 
 {% block content %}
 {% if file %}

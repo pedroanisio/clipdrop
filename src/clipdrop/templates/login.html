@@ -1,9 +1,33 @@
 {% extends "base.html" %}
 
-{% block title %}Sign In{% endblock %}
+{% block title %}Sign In - ClipDrop{% endblock %}
 
 {% block content %}
 <div class="auth-container">
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+        <div class="mb-3">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              {% if category == 'success' %}
+                <i class="fas fa-check-circle mr-2" aria-hidden="true"></i>
+              {% elif category == 'danger' %}
+                <i class="fas fa-times-circle mr-2" aria-hidden="true"></i>
+              {% elif category == 'warning' %}
+                <i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i>
+              {% else %}
+                <i class="fas fa-info-circle mr-2" aria-hidden="true"></i>
+              {% endif %}
+              <span>{{ message }}</span>
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
     <div class="auth-page-header">
         <h1 class="page-title"><i class="fas fa-user-lock" aria-hidden="true"></i> Sign in</h1>
         <p class="page-subtitle">Connect your GitHub account to access uploads and clipboard.</p>

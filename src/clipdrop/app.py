@@ -22,7 +22,7 @@ from flask import (
     send_file,
     url_for,
 )
-from flask_dance.consumer import oauth_authorized
+from flask_dance.consumer import oauth_authorized, oauth_error
 from flask_dance.contrib.github import make_github_blueprint
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy.exc import IntegrityError
@@ -34,6 +34,10 @@ from clipdrop.models import OAuth, User
 
 # Load environment variables
 load_dotenv()
+
+# Allow OAuth over HTTP for local development (disable in production)
+if os.getenv("FLASK_ENV") == "development" or os.getenv("OAUTHLIB_INSECURE_TRANSPORT"):
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -131,6 +135,7 @@ def create_app(config=None):
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
+    login_manager.login_message = None  # Disable default "Please log in" message
     login_manager.login_message_category = "warning"
 
     with app.app_context():
@@ -145,10 +150,32 @@ def create_app(config=None):
     # Register routes
     register_routes(app)
 
+    # Register error handlers
+    register_error_handlers(app)
+
     # Setup scheduler for cleanup
     setup_scheduler(app)
 
     return app
+
+
+def register_error_handlers(app):
+    """Register error handlers for the application."""
+    from oauthlib.oauth2.rfc6749.errors import OAuth2Error
+
+    @app.errorhandler(OAuth2Error)
+    def handle_oauth_error(error):
+        """Handle OAuth2 errors gracefully."""
+        error_messages = {
+            "bad_verification_code": "The login code has expired. Please try signing in again.",
+            "access_denied": "GitHub access was denied. Please try again.",
+            "invalid_grant": "The authorization code has expired. Please try signing in again.",
+        }
+        error_type = getattr(error, "error", str(error))
+        user_message = error_messages.get(error_type, f"Authentication failed. Please try again.")
+        logger.warning(f"OAuth2 error caught: {error}")
+        flash(user_message, "danger")
+        return redirect(url_for("auth.login"))
 
 
 def register_auth(app):
@@ -185,6 +212,21 @@ def register_auth(app):
         scope="read:user,user:email",
     )
     app.register_blueprint(github_bp, url_prefix="/login")
+
+    @oauth_error.connect_via(github_bp)
+    def github_error(blueprint, message, response):
+        """Handle OAuth errors gracefully."""
+        error_messages = {
+            "bad_verification_code": "The login code has expired. Please try signing in again.",
+            "access_denied": "GitHub access was denied. Please try again.",
+            "incorrect_client_credentials": "OAuth configuration error. Please contact the administrator.",
+        }
+        # Extract error type from message or response
+        error_type = message if isinstance(message, str) else "unknown"
+        user_message = error_messages.get(error_type, f"GitHub authentication failed: {message}")
+        logger.warning(f"OAuth error: {message}")
+        flash(user_message, "danger")
+        return redirect(url_for("auth.login"))
 
     @oauth_authorized.connect_via(github_bp)
     def github_logged_in(blueprint, token):
