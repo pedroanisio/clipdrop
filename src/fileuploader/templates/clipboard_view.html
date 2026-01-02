@@ -3,106 +3,105 @@
 {% block title %}Shared Clipboard - {{ file.name if file else 'Not Found' }}{% endblock %}
 
 {% block content %}
-<div class="clipboard-view-container">
-    {% if file %}
-    <div class="content-card">
-        <div class="content-header gradient-accent">
-            <a href="{{ url_for('shared_clipboard') }}" class="back-link mb-2 d-inline-block">
-                <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Shared Clipboard
-            </a>
-            <h1>
-                {% if file.extension in ['png', 'jpg', 'jpeg', 'gif'] %}
-                    <i class="fas fa-image" aria-hidden="true"></i>
-                {% else %}
-                    <i class="fas fa-file-alt" aria-hidden="true"></i>
-                {% endif %}
-                Shared Content
-            </h1>
-            <div class="content-meta">
-                <span><i class="fas fa-clock" aria-hidden="true"></i> {{ file.creation_time.strftime('%Y-%m-%d %H:%M:%S') }}</span>
-                <span class="ml-3"><i class="fas fa-weight" aria-hidden="true"></i> {{ file.size_human }}</span>
-            </div>
-        </div>
-        <div class="content-body">
-            <!-- Action Buttons -->
-            <div class="action-buttons mb-4">
-                {% if is_text %}
-                <button id="copy-btn" class="btn btn-primary" aria-label="Copy content to clipboard">
-                    <i class="fas fa-copy" aria-hidden="true"></i> Copy to Clipboard
-                </button>
-                {% endif %}
-                <button id="share-btn" class="btn btn-success" data-url="{{ request.url }}" aria-label="Copy shareable link">
-                    <i class="fas fa-link" aria-hidden="true"></i> Copy Link
-                </button>
-                <a href="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="btn btn-info" download aria-label="Download file">
-                    <i class="fas fa-download" aria-hidden="true"></i> Download
-                </a>
-            </div>
+{% if file %}
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <a href="{{ url_for('shared_clipboard') }}" class="btn btn-outline-primary btn-sm mb-3">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Clipboard
+    </a>
+    <h1 class="page-title">
+        {% if file.extension in ['png', 'jpg', 'jpeg', 'gif'] %}
+            <i class="fas fa-image" aria-hidden="true"></i>
+        {% else %}
+            <i class="fas fa-file-alt" aria-hidden="true"></i>
+        {% endif %}
+        Shared Content
+    </h1>
+    <p class="page-subtitle">
+        <i class="fas fa-clock" aria-hidden="true"></i> {{ file.creation_time.strftime('%Y-%m-%d %H:%M:%S') }}
+        &nbsp;&middot;&nbsp;
+        <i class="fas fa-weight" aria-hidden="true"></i> {{ file.size_human }}
+    </p>
+</div>
 
-            <!-- Content Display -->
+<!-- Content Card -->
+<div class="page-card">
+    <div class="section-header">
+        <h2 class="section-title"><i class="fas fa-eye" aria-hidden="true"></i> Content</h2>
+        <div class="action-buttons">
             {% if is_text %}
-            <div class="content-text" id="content-text">{{ file.content | e }}</div>
-            {% else %}
-            <div class="image-container">
-                <img src="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="content-image" alt="Shared Image: {{ file.name }}">
-            </div>
+            <button id="copy-btn" class="btn btn-primary btn-sm" aria-label="Copy content to clipboard">
+                <i class="fas fa-copy" aria-hidden="true"></i> Copy
+            </button>
             {% endif %}
+            <button id="share-btn" class="btn btn-success btn-sm" data-url="{{ request.url }}" aria-label="Copy shareable link">
+                <i class="fas fa-link" aria-hidden="true"></i> Link
+            </button>
+            <a href="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="btn btn-info btn-sm" download aria-label="Download file">
+                <i class="fas fa-download" aria-hidden="true"></i> Download
+            </a>
         </div>
     </div>
+
+    {% if is_text %}
+    <div class="content-text" id="content-text">{{ file.content | e }}</div>
     {% else %}
-    <div class="content-card">
-        <div class="empty-state">
-            <i class="fas fa-exclamation-circle text-danger" aria-hidden="true"></i>
-            <h2>Content Not Found</h2>
-            <p class="text-muted">This clipboard item may have expired or been deleted.</p>
-            <a href="{{ url_for('shared_clipboard') }}" class="btn btn-primary mt-3">
-                <i class="fas fa-arrow-left" aria-hidden="true"></i> Go to Shared Clipboard
-            </a>
-        </div>
+    <div class="image-container">
+        <img src="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="content-image" alt="Shared Image: {{ file.name }}">
     </div>
     {% endif %}
 </div>
+{% else %}
+<!-- Not Found State -->
+<div class="page-card">
+    <div class="empty-state">
+        <i class="fas fa-exclamation-circle text-danger" aria-hidden="true"></i>
+        <h2>Content Not Found</h2>
+        <p class="text-muted">This clipboard item may have expired or been deleted.</p>
+        <a href="{{ url_for('shared_clipboard') }}" class="btn btn-primary mt-3">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Go to Shared Clipboard
+        </a>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Copy content button
     const copyBtn = document.getElementById('copy-btn');
     if (copyBtn) {
         copyBtn.addEventListener('click', async () => {
             const content = document.getElementById('content-text').textContent;
             try {
                 await navigator.clipboard.writeText(content);
-                showToast('Content copied to clipboard!', 'success');
+                showToast('Copied to clipboard!', 'success');
 
                 copyBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Copied!';
                 copyBtn.classList.remove('btn-primary');
                 copyBtn.classList.add('btn-success');
 
                 setTimeout(() => {
-                    copyBtn.innerHTML = '<i class="fas fa-copy" aria-hidden="true"></i> Copy to Clipboard';
+                    copyBtn.innerHTML = '<i class="fas fa-copy" aria-hidden="true"></i> Copy';
                     copyBtn.classList.remove('btn-success');
                     copyBtn.classList.add('btn-primary');
                 }, 2000);
             } catch (err) {
-                showToast('Failed to copy content', 'error');
+                showToast('Failed to copy', 'error');
             }
         });
     }
 
-    // Share/Link button
     const shareBtn = document.getElementById('share-btn');
     if (shareBtn) {
         shareBtn.addEventListener('click', async () => {
-            const url = shareBtn.getAttribute('data-url');
             try {
-                await navigator.clipboard.writeText(url);
-                showToast('Link copied to clipboard!', 'success');
+                await navigator.clipboard.writeText(shareBtn.getAttribute('data-url'));
+                showToast('Link copied!', 'success');
 
-                shareBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Link Copied!';
+                shareBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Copied!';
 
                 setTimeout(() => {
-                    shareBtn.innerHTML = '<i class="fas fa-link" aria-hidden="true"></i> Copy Link';
+                    shareBtn.innerHTML = '<i class="fas fa-link" aria-hidden="true"></i> Link';
                 }, 2000);
             } catch (err) {
                 showToast('Failed to copy link', 'error');
@@ -110,7 +109,6 @@
         });
     }
 
-    // Double-click to select all content
     const contentText = document.getElementById('content-text');
     if (contentText) {
         contentText.addEventListener('dblclick', () => {

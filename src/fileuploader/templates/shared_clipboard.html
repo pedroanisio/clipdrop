@@ -3,51 +3,54 @@
 {% block title %}Shared Clipboard{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="fas fa-clipboard-list" aria-hidden="true"></i> Shared Clipboard</h1>
-    <a href="{{ url_for('upload_file') }}" class="btn btn-outline-primary">
-        <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Files
-    </a>
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <h1 class="page-title"><i class="fas fa-clipboard-list" aria-hidden="true"></i> Shared Clipboard</h1>
+    <p class="page-subtitle">Share text and images instantly</p>
 </div>
 
 <!-- Quick Paste Section -->
-<div class="quick-paste gradient-accent">
-    <h4><i class="fas fa-paste" aria-hidden="true"></i> Quick Paste</h4>
-    <p class="mb-3">Paste text below to instantly share it</p>
+<div class="page-card mb-4">
+    <div class="section-header">
+        <h2 class="section-title"><i class="fas fa-paste" aria-hidden="true"></i> Quick Paste</h2>
+    </div>
     <form id="clipboard-form">
         <div class="form-group">
             <label for="clipboard-text" class="sr-only">Text to save</label>
             <textarea id="clipboard-text" class="form-control" rows="3" placeholder="Paste or type text here..."></textarea>
         </div>
-        <button type="submit" class="btn btn-light">
+        <button type="submit" class="btn btn-primary">
             <i class="fas fa-save" aria-hidden="true"></i> Save to Clipboard
         </button>
     </form>
 </div>
 
 <!-- Clipboard Items -->
-<h3 class="mb-4"><i class="fas fa-history" aria-hidden="true"></i> Recent Items ({{ clipboard_files|length }})</h3>
+<div class="page-card">
+    <div class="section-header">
+        <h2 class="section-title"><i class="fas fa-history" aria-hidden="true"></i> Recent Items</h2>
+        <span class="section-badge">{{ clipboard_files | length }} items</span>
+    </div>
 
-{% if clipboard_files %}
-    {% for file in clipboard_files %}
-    <div class="clipboard-item" id="item-{{ loop.index }}">
-        <div class="d-flex justify-content-between align-items-start">
-            <div>
-                <h5>
+    {% if clipboard_files %}
+    <div class="clipboard-list">
+        {% for file in clipboard_files %}
+        <div class="clipboard-item" id="item-{{ loop.index }}">
+            <div class="clipboard-item-header">
+                <div class="clipboard-item-info">
                     {% if file.extension in ['png', 'jpg', 'jpeg', 'gif'] %}
                         <i class="fas fa-image text-info" aria-hidden="true"></i>
                     {% else %}
                         <i class="fas fa-file-alt text-secondary" aria-hidden="true"></i>
                     {% endif %}
-                    <span class="text-muted">{{ file.name }}</span>
-                </h5>
-                <div class="clipboard-meta">
-                    <i class="fas fa-clock" aria-hidden="true"></i> {{ file.creation_time.strftime('%Y-%m-%d %H:%M:%S') }}
-                    &nbsp;&middot;&nbsp;
-                    <i class="fas fa-weight" aria-hidden="true"></i> {{ file.size_human }}
+                    <span class="clipboard-item-name">{{ file.name }}</span>
+                </div>
+                <div class="clipboard-item-meta">
+                    <span><i class="fas fa-clock" aria-hidden="true"></i> {{ file.creation_time.strftime('%Y-%m-%d %H:%M') }}</span>
+                    <span><i class="fas fa-weight" aria-hidden="true"></i> {{ file.size_human }}</span>
                 </div>
             </div>
-            <div class="btn-group">
+            <div class="clipboard-item-actions">
                 {% if file.name.endswith('.txt') %}
                 <button class="btn btn-primary btn-sm copy-content-btn" data-content="{{ file.content | e }}" aria-label="Copy {{ file.name }}">
                     <i class="fas fa-copy" aria-hidden="true"></i> Copy
@@ -56,42 +59,41 @@
                 <a href="{{ url_for('clipboard_file', filename=file.name) }}" class="btn btn-outline-primary btn-sm" aria-label="View {{ file.name }}">
                     <i class="fas fa-eye" aria-hidden="true"></i> View
                 </a>
-                <button class="btn btn-success btn-sm share-btn" data-url="{{ url_for('clipboard_file', filename=file.name, _external=True) }}" aria-label="Copy link for {{ file.name }}">
+                <button class="btn btn-success btn-sm share-btn" data-url="{{ url_for('clipboard_file', filename=file.name, _external=True) }}" aria-label="Copy link">
                     <i class="fas fa-link" aria-hidden="true"></i> Link
                 </button>
-                <a href="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="btn btn-info btn-sm" aria-label="Download {{ file.name }}" download>
+                <a href="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="btn btn-info btn-sm" aria-label="Download" download>
                     <i class="fas fa-download" aria-hidden="true"></i>
                 </a>
-                <button class="btn btn-danger btn-sm delete-btn" data-filename="{{ file.name }}" aria-label="Delete {{ file.name }}">
+                <button class="btn btn-danger btn-sm delete-btn" data-filename="{{ file.name }}" aria-label="Delete">
                     <i class="fas fa-trash" aria-hidden="true"></i>
                 </button>
             </div>
-        </div>
 
-        {% if file.name.endswith('.txt') %}
-        <div class="clipboard-content">
-            <button class="btn btn-sm btn-outline-secondary copy-all-btn copy-content-btn" data-content="{{ file.content | e }}" aria-label="Copy all content">
-                <i class="fas fa-clipboard" aria-hidden="true"></i>
-            </button>
-            <pre>{{ file.content | e }}</pre>
+            {% if file.name.endswith('.txt') %}
+            <div class="clipboard-content">
+                <pre>{{ file.content | e }}</pre>
+            </div>
+            {% else %}
+            <div class="clipboard-image-container">
+                <img src="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="clipboard-image" alt="Clipboard Image: {{ file.name }}">
+            </div>
+            {% endif %}
         </div>
-        {% else %}
-        <img src="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="clipboard-image" alt="Clipboard Image: {{ file.name }}">
-        {% endif %}
+        {% endfor %}
     </div>
-    {% endfor %}
-{% else %}
+    {% else %}
     <div class="empty-state">
         <i class="fas fa-clipboard" aria-hidden="true"></i>
         <h4>No clipboard items yet</h4>
         <p>Use the Quick Paste form above to add your first item</p>
     </div>
-{% endif %}
+    {% endif %}
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Save clipboard form
     document.getElementById('clipboard-form').addEventListener('submit', async (event) => {
         event.preventDefault();
         const text = document.getElementById('clipboard-text').value.trim();
@@ -105,10 +107,7 @@
         formData.append('clipboard_data', text);
 
         try {
-            const response = await fetch('/clipboard', {
-                method: 'POST',
-                body: formData
-            });
+            const response = await fetch('/clipboard', { method: 'POST', body: formData });
             const result = await response.json();
 
             if (result.status === 'success') {
@@ -122,7 +121,6 @@
         }
     });
 
-    // Copy content buttons
     document.querySelectorAll('.copy-content-btn').forEach(button => {
         button.addEventListener('click', async () => {
             const content = button.getAttribute('data-content');
@@ -133,16 +131,12 @@
                 const originalHtml = button.innerHTML;
                 button.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Copied!';
                 button.classList.add('btn-success');
-                button.classList.remove('btn-primary', 'btn-outline-secondary');
+                button.classList.remove('btn-primary');
 
                 setTimeout(() => {
                     button.innerHTML = originalHtml;
                     button.classList.remove('btn-success');
-                    if (button.classList.contains('copy-all-btn')) {
-                        button.classList.add('btn-outline-secondary');
-                    } else {
-                        button.classList.add('btn-primary');
-                    }
+                    button.classList.add('btn-primary');
                 }, 2000);
             } catch (err) {
                 showToast('Failed to copy', 'error');
@@ -150,12 +144,10 @@
         });
     });
 
-    // Share/Link buttons
     document.querySelectorAll('.share-btn').forEach(button => {
         button.addEventListener('click', async () => {
-            const url = button.getAttribute('data-url');
             try {
-                await navigator.clipboard.writeText(url);
+                await navigator.clipboard.writeText(button.getAttribute('data-url'));
                 showToast('Link copied!', 'success');
             } catch (err) {
                 showToast('Failed to copy link', 'error');
@@ -163,19 +155,12 @@
         });
     });
 
-    // Delete buttons
     document.querySelectorAll('.delete-btn').forEach(button => {
         button.addEventListener('click', async () => {
-            const filename = button.getAttribute('data-filename');
-
-            if (!confirm('Delete this clipboard item?')) {
-                return;
-            }
+            if (!confirm('Delete this clipboard item?')) return;
 
             try {
-                const response = await fetch(`/delete/clipboard/${filename}`, {
-                    method: 'DELETE'
-                });
+                const response = await fetch(`/delete/clipboard/${button.getAttribute('data-filename')}`, { method: 'DELETE' });
                 const result = await response.json();
 
                 if (result.status === 'success') {
