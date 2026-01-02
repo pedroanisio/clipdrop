@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{% block title %}File Uploader{% endblock %}</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Skip Link for Accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container" role="region" aria-label="Notifications" aria-live="polite"></div>
+
+    <!-- Navigation -->
+    <header role="banner">
+        <nav class="navbar" aria-label="Main navigation">
+            <div class="navbar-container container">
+                <a href="{{ url_for('upload_file') }}" class="navbar-brand">
+                    <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+                    <span>File Uploader</span>
+                </a>
+                <ul class="nav nav-desktop">
+                    <li class="nav-item">
+                        <a href="{{ url_for('upload_file') }}" class="nav-link {% if active_page == 'files' %}is-active{% endif %}">
+                            <i class="fas fa-folder-open nav-icon" aria-hidden="true"></i>
+                            <span>Files</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ url_for('shared_clipboard') }}" class="nav-link {% if active_page == 'clipboard' %}is-active{% endif %}">
+                            <i class="fas fa-clipboard nav-icon" aria-hidden="true"></i>
+                            <span>Clipboard</span>
+                        </a>
+                    </li>
+                </ul>
+                <button class="nav-mobile-toggle" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
+                    <i class="fas fa-bars" aria-hidden="true"></i>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav-backdrop" id="mobile-nav-backdrop"></div>
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+        <div class="mobile-nav-header">
+            <span class="navbar-brand">
+                <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i> File Uploader
+            </span>
+            <button class="btn-ghost btn-icon" aria-label="Close menu" id="mobile-nav-close">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="mobile-nav-body">
+            <a href="{{ url_for('upload_file') }}" class="mobile-nav-link {% if active_page == 'files' %}is-active{% endif %}">
+                <i class="fas fa-folder-open mobile-nav-icon" aria-hidden="true"></i>
+                <span>Files</span>
+            </a>
+            <a href="{{ url_for('shared_clipboard') }}" class="mobile-nav-link {% if active_page == 'clipboard' %}is-active{% endif %}">
+                <i class="fas fa-clipboard mobile-nav-icon" aria-hidden="true"></i>
+                <span>Clipboard</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main role="main" id="main-content" class="main-content">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Bottom Navigation for Mobile -->
+    <nav class="bottom-nav" aria-label="Mobile navigation">
+        <a href="{{ url_for('upload_file') }}" class="bottom-nav-item {% if active_page == 'files' %}is-active{% endif %}">
+            <i class="fas fa-folder-open bottom-nav-icon" aria-hidden="true"></i>
+            <span>Files</span>
+        </a>
+        <a href="{{ url_for('shared_clipboard') }}" class="bottom-nav-item {% if active_page == 'clipboard' %}is-active{% endif %}">
+            <i class="fas fa-clipboard bottom-nav-icon" aria-hidden="true"></i>
+            <span>Clipboard</span>
+        </a>
+    </nav>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script>
+        // Theme initialization
+        (function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', saved || preferred);
+        })();
+
+        // Mobile navigation
+        const mobileToggle = document.querySelector('.nav-mobile-toggle');
+        const mobileNav = document.getElementById('mobile-nav');
+        const mobileBackdrop = document.getElementById('mobile-nav-backdrop');
+        const mobileClose = document.getElementById('mobile-nav-close');
+
+        function toggleMobileNav() {
+            const isOpen = mobileNav.classList.contains('is-open');
+            mobileNav.classList.toggle('is-open');
+            mobileBackdrop.classList.toggle('is-visible');
+            mobileToggle.setAttribute('aria-expanded', !isOpen);
+            mobileToggle.setAttribute('aria-label', isOpen ? 'Open menu' : 'Close menu');
+
+            if (!isOpen) {
+                document.body.style.overflow = 'hidden';
+                mobileNav.querySelector('.mobile-nav-link').focus();
+            } else {
+                document.body.style.overflow = '';
+                mobileToggle.focus();
+            }
+        }
+
+        mobileToggle.addEventListener('click', toggleMobileNav);
+        mobileBackdrop.addEventListener('click', toggleMobileNav);
+        mobileClose.addEventListener('click', toggleMobileNav);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mobileNav.classList.contains('is-open')) {
+                toggleMobileNav();
+            }
+        });
+
+        // Toast notification function
+        function showToast(message, type = 'success') {
+            const toastContainer = document.getElementById('toast-container');
+            const toastId = 'toast-' + Date.now();
+            const iconClass = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+            const toastClass = type === 'success' ? 'toast-success' : type === 'error' ? 'toast-error' : 'toast-info';
+
+            const toastHtml = `
+                <div id="${toastId}" class="toast ${toastClass}" role="alert" aria-live="assertive">
+                    <i class="fas ${iconClass} toast-icon" aria-hidden="true"></i>
+                    <div class="toast-content">
+                        <span class="toast-message">${message}</span>
+                    </div>
+                    <button class="toast-close" aria-label="Close notification">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
+                </div>
+            `;
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            const toastElement = document.getElementById(toastId);
+
+            toastElement.querySelector('.toast-close').addEventListener('click', () => {
+                toastElement.remove();
+            });
+
+            setTimeout(() => {
+                if (toastElement.parentNode) {
+                    toastElement.style.animation = 'fadeIn 0.25s ease reverse forwards';
+                    setTimeout(() => toastElement.remove(), 250);
+                }
+            }, 4000);
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

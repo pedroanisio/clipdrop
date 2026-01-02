@@ -1,305 +1,193 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Shared Clipboard</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <style>
-        .clipboard-item {
-            background: #fff;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            transition: box-shadow 0.2s ease;
-        }
-        .clipboard-item:hover {
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-        }
-        .clipboard-content {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            padding: 15px;
-            margin: 15px 0;
-            max-height: 400px;
-            overflow-y: auto;
-            position: relative;
-        }
-        .clipboard-content pre {
-            margin: 0;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 14px;
-        }
-        .clipboard-image {
-            max-width: 100%;
-            border-radius: 6px;
-            margin: 15px 0;
-        }
-        .copy-all-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-        }
-        .clipboard-meta {
-            color: #6c757d;
-            font-size: 0.85rem;
-            margin-bottom: 10px;
-        }
-        .quick-paste {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            padding: 20px;
-            border-radius: 8px;
-            color: white;
-            margin-bottom: 30px;
-        }
-        .quick-paste textarea {
-            border: none;
-            border-radius: 6px;
-        }
-        .quick-paste .btn-light {
-            font-weight: 600;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #6c757d;
-        }
-        .empty-state i {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            opacity: 0.5;
-        }
-        .nav-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-    </style>
-</head>
-<body>
-    <!-- Toast Container -->
-    <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+{% extends "base.html" %}
 
-    <div class="container mt-5">
-        <div class="nav-header">
-            <h1><i class="fas fa-clipboard-list"></i> Shared Clipboard</h1>
-            <a href="{{ url_for('upload_file') }}" class="btn btn-outline-primary">
-                <i class="fas fa-arrow-left"></i> Back to Files
-            </a>
+{% block title %}Shared Clipboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-clipboard-list" aria-hidden="true"></i> Shared Clipboard</h1>
+    <a href="{{ url_for('upload_file') }}" class="btn btn-outline-primary">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Files
+    </a>
+</div>
+
+<!-- Quick Paste Section -->
+<div class="quick-paste gradient-accent">
+    <h4><i class="fas fa-paste" aria-hidden="true"></i> Quick Paste</h4>
+    <p class="mb-3">Paste text below to instantly share it</p>
+    <form id="clipboard-form">
+        <div class="form-group">
+            <label for="clipboard-text" class="sr-only">Text to save</label>
+            <textarea id="clipboard-text" class="form-control" rows="3" placeholder="Paste or type text here..."></textarea>
         </div>
+        <button type="submit" class="btn btn-light">
+            <i class="fas fa-save" aria-hidden="true"></i> Save to Clipboard
+        </button>
+    </form>
+</div>
 
-        <!-- Quick Paste Section -->
-        <div class="quick-paste">
-            <h4><i class="fas fa-paste"></i> Quick Paste</h4>
-            <p class="mb-3">Paste text below to instantly share it</p>
-            <form id="clipboard-form">
-                <div class="form-group">
-                    <textarea id="clipboard-text" class="form-control" rows="3" placeholder="Paste or type text here..."></textarea>
+<!-- Clipboard Items -->
+<h3 class="mb-4"><i class="fas fa-history" aria-hidden="true"></i> Recent Items ({{ clipboard_files|length }})</h3>
+
+{% if clipboard_files %}
+    {% for file in clipboard_files %}
+    <div class="clipboard-item" id="item-{{ loop.index }}">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h5>
+                    {% if file.extension in ['png', 'jpg', 'jpeg', 'gif'] %}
+                        <i class="fas fa-image text-info" aria-hidden="true"></i>
+                    {% else %}
+                        <i class="fas fa-file-alt text-secondary" aria-hidden="true"></i>
+                    {% endif %}
+                    <span class="text-muted">{{ file.name }}</span>
+                </h5>
+                <div class="clipboard-meta">
+                    <i class="fas fa-clock" aria-hidden="true"></i> {{ file.creation_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                    &nbsp;&middot;&nbsp;
+                    <i class="fas fa-weight" aria-hidden="true"></i> {{ file.size_human }}
                 </div>
-                <button type="submit" class="btn btn-light">
-                    <i class="fas fa-save"></i> Save to Clipboard
-                </button>
-            </form>
-        </div>
-
-        <!-- Clipboard Items -->
-        <h3 class="mb-4"><i class="fas fa-history"></i> Recent Items ({{ clipboard_files|length }})</h3>
-
-        {% if clipboard_files %}
-            {% for file in clipboard_files %}
-            <div class="clipboard-item" id="item-{{ loop.index }}">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h5>
-                            {% if file.extension in ['png', 'jpg', 'jpeg', 'gif'] %}
-                                <i class="fas fa-image text-info"></i>
-                            {% else %}
-                                <i class="fas fa-file-alt text-secondary"></i>
-                            {% endif %}
-                            <span class="text-muted">{{ file.name }}</span>
-                        </h5>
-                        <div class="clipboard-meta">
-                            <i class="fas fa-clock"></i> {{ file.creation_time.strftime('%Y-%m-%d %H:%M:%S') }}
-                            &nbsp;&middot;&nbsp;
-                            <i class="fas fa-weight"></i> {{ file.size_human }}
-                        </div>
-                    </div>
-                    <div class="btn-group">
-                        {% if file.name.endswith('.txt') %}
-                        <button class="btn btn-primary btn-sm copy-content-btn" data-content="{{ file.content | e }}" title="Copy to Clipboard">
-                            <i class="fas fa-copy"></i> Copy
-                        </button>
-                        {% endif %}
-                        <a href="{{ url_for('clipboard_file', filename=file.name) }}" class="btn btn-outline-primary btn-sm" title="View">
-                            <i class="fas fa-eye"></i> View
-                        </a>
-                        <button class="btn btn-success btn-sm share-btn" data-url="{{ url_for('clipboard_file', filename=file.name, _external=True) }}" title="Copy Link">
-                            <i class="fas fa-link"></i> Link
-                        </button>
-                        <a href="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="btn btn-info btn-sm" title="Download" download>
-                            <i class="fas fa-download"></i>
-                        </a>
-                        <button class="btn btn-danger btn-sm delete-btn" data-filename="{{ file.name }}" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-
+            </div>
+            <div class="btn-group">
                 {% if file.name.endswith('.txt') %}
-                <div class="clipboard-content">
-                    <button class="btn btn-sm btn-outline-secondary copy-all-btn copy-content-btn" data-content="{{ file.content | e }}" title="Copy All">
-                        <i class="fas fa-clipboard"></i>
-                    </button>
-                    <pre>{{ file.content | e }}</pre>
-                </div>
-                {% else %}
-                <img src="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="clipboard-image" alt="Clipboard Image">
+                <button class="btn btn-primary btn-sm copy-content-btn" data-content="{{ file.content | e }}" aria-label="Copy {{ file.name }}">
+                    <i class="fas fa-copy" aria-hidden="true"></i> Copy
+                </button>
                 {% endif %}
+                <a href="{{ url_for('clipboard_file', filename=file.name) }}" class="btn btn-outline-primary btn-sm" aria-label="View {{ file.name }}">
+                    <i class="fas fa-eye" aria-hidden="true"></i> View
+                </a>
+                <button class="btn btn-success btn-sm share-btn" data-url="{{ url_for('clipboard_file', filename=file.name, _external=True) }}" aria-label="Copy link for {{ file.name }}">
+                    <i class="fas fa-link" aria-hidden="true"></i> Link
+                </button>
+                <a href="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="btn btn-info btn-sm" aria-label="Download {{ file.name }}" download>
+                    <i class="fas fa-download" aria-hidden="true"></i>
+                </a>
+                <button class="btn btn-danger btn-sm delete-btn" data-filename="{{ file.name }}" aria-label="Delete {{ file.name }}">
+                    <i class="fas fa-trash" aria-hidden="true"></i>
+                </button>
             </div>
-            {% endfor %}
+        </div>
+
+        {% if file.name.endswith('.txt') %}
+        <div class="clipboard-content">
+            <button class="btn btn-sm btn-outline-secondary copy-all-btn copy-content-btn" data-content="{{ file.content | e }}" aria-label="Copy all content">
+                <i class="fas fa-clipboard" aria-hidden="true"></i>
+            </button>
+            <pre>{{ file.content | e }}</pre>
+        </div>
         {% else %}
-            <div class="empty-state">
-                <i class="fas fa-clipboard"></i>
-                <h4>No clipboard items yet</h4>
-                <p>Use the Quick Paste form above to add your first item</p>
-            </div>
+        <img src="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="clipboard-image" alt="Clipboard Image: {{ file.name }}">
         {% endif %}
     </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <i class="fas fa-clipboard" aria-hidden="true"></i>
+        <h4>No clipboard items yet</h4>
+        <p>Use the Quick Paste form above to add your first item</p>
+    </div>
+{% endif %}
+{% endblock %}
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-    <script>
-        // Toast notification function
-        function showToast(message, type = 'success') {
-            const toastContainer = document.getElementById('toast-container');
-            const toastId = 'toast-' + Date.now();
-            const iconClass = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
-            const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+{% block scripts %}
+<script>
+    // Save clipboard form
+    document.getElementById('clipboard-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const text = document.getElementById('clipboard-text').value.trim();
 
-            const toastHtml = `
-                <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true" data-delay="3000">
-                    <div class="toast-body">
-                        <i class="fas ${iconClass} mr-2"></i>${message}
-                    </div>
-                </div>
-            `;
-            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-            const toastElement = document.getElementById(toastId);
-            $(toastElement).toast('show');
-            setTimeout(() => toastElement.remove(), 3500);
+        if (!text) {
+            showToast('Please enter some text', 'error');
+            return;
         }
 
-        // Save clipboard form
-        document.getElementById('clipboard-form').addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const text = document.getElementById('clipboard-text').value.trim();
+        const formData = new FormData();
+        formData.append('clipboard_data', text);
 
-            if (!text) {
-                showToast('Please enter some text', 'error');
+        try {
+            const response = await fetch('/clipboard', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                showToast('Saved to clipboard!', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast(result.message || 'Failed to save', 'error');
+            }
+        } catch (error) {
+            showToast('Failed to save', 'error');
+        }
+    });
+
+    // Copy content buttons
+    document.querySelectorAll('.copy-content-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const content = button.getAttribute('data-content');
+            try {
+                await navigator.clipboard.writeText(content);
+                showToast('Copied to clipboard!', 'success');
+
+                const originalHtml = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Copied!';
+                button.classList.add('btn-success');
+                button.classList.remove('btn-primary', 'btn-outline-secondary');
+
+                setTimeout(() => {
+                    button.innerHTML = originalHtml;
+                    button.classList.remove('btn-success');
+                    if (button.classList.contains('copy-all-btn')) {
+                        button.classList.add('btn-outline-secondary');
+                    } else {
+                        button.classList.add('btn-primary');
+                    }
+                }, 2000);
+            } catch (err) {
+                showToast('Failed to copy', 'error');
+            }
+        });
+    });
+
+    // Share/Link buttons
+    document.querySelectorAll('.share-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const url = button.getAttribute('data-url');
+            try {
+                await navigator.clipboard.writeText(url);
+                showToast('Link copied!', 'success');
+            } catch (err) {
+                showToast('Failed to copy link', 'error');
+            }
+        });
+    });
+
+    // Delete buttons
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const filename = button.getAttribute('data-filename');
+
+            if (!confirm('Delete this clipboard item?')) {
                 return;
             }
 
-            const formData = new FormData();
-            formData.append('clipboard_data', text);
-
             try {
-                const response = await fetch('/clipboard', {
-                    method: 'POST',
-                    body: formData
+                const response = await fetch(`/delete/clipboard/${filename}`, {
+                    method: 'DELETE'
                 });
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    showToast('Saved to clipboard!', 'success');
+                    showToast('Deleted!', 'success');
                     setTimeout(() => location.reload(), 1000);
                 } else {
-                    showToast(result.message || 'Failed to save', 'error');
+                    showToast(result.message || 'Failed to delete', 'error');
                 }
             } catch (error) {
-                showToast('Failed to save', 'error');
+                showToast('Failed to delete', 'error');
             }
         });
-
-        // Copy content buttons
-        document.querySelectorAll('.copy-content-btn').forEach(button => {
-            button.addEventListener('click', async () => {
-                const content = button.getAttribute('data-content');
-                try {
-                    await navigator.clipboard.writeText(content);
-                    showToast('Copied to clipboard!', 'success');
-
-                    // Visual feedback
-                    const originalHtml = button.innerHTML;
-                    button.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                    button.classList.add('btn-success');
-                    button.classList.remove('btn-primary', 'btn-outline-secondary');
-
-                    setTimeout(() => {
-                        button.innerHTML = originalHtml;
-                        button.classList.remove('btn-success');
-                        if (button.classList.contains('copy-all-btn')) {
-                            button.classList.add('btn-outline-secondary');
-                        } else {
-                            button.classList.add('btn-primary');
-                        }
-                    }, 2000);
-                } catch (err) {
-                    showToast('Failed to copy', 'error');
-                }
-            });
-        });
-
-        // Share/Link buttons
-        document.querySelectorAll('.share-btn').forEach(button => {
-            button.addEventListener('click', async () => {
-                const url = button.getAttribute('data-url');
-                try {
-                    await navigator.clipboard.writeText(url);
-                    showToast('Link copied!', 'success');
-                } catch (err) {
-                    showToast('Failed to copy link', 'error');
-                }
-            });
-        });
-
-        // Delete buttons
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', async () => {
-                const filename = button.getAttribute('data-filename');
-
-                if (!confirm('Delete this clipboard item?')) {
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`/delete/clipboard/${filename}`, {
-                        method: 'DELETE'
-                    });
-                    const result = await response.json();
-
-                    if (result.status === 'success') {
-                        showToast('Deleted!', 'success');
-                        setTimeout(() => location.reload(), 1000);
-                    } else {
-                        showToast(result.message || 'Failed to delete', 'error');
-                    }
-                } catch (error) {
-                    showToast('Failed to delete', 'error');
-                }
-            });
-        });
-
-        // Auto-focus on textarea
-        document.getElementById('clipboard-text').focus();
-    </script>
-</body>
-</html>
+    });
+</script>
+{% endblock %}

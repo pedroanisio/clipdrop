@@ -1,249 +1,125 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Shared Clipboard - {{ file.name }}</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <style>
-        .clipboard-view-container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        .content-card {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-        .content-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 25px 30px;
-        }
-        .content-header h1 {
-            color: white;
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-            word-break: break-all;
-        }
-        .content-meta {
-            opacity: 0.9;
-            font-size: 0.9rem;
-        }
-        .content-meta i {
-            margin-right: 5px;
-        }
-        .content-body {
-            padding: 30px;
-        }
-        .content-text {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 20px;
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            max-height: 70vh;
-            overflow-y: auto;
-            position: relative;
-        }
-        .content-image {
-            max-width: 100%;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .action-buttons .btn {
-            padding: 10px 20px;
-        }
-        .copy-success {
-            display: none;
-            color: #28a745;
-            margin-left: 10px;
-        }
-        .back-link {
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-        }
-        .back-link:hover {
-            color: white;
-            text-decoration: none;
-        }
-        .image-container {
-            text-align: center;
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-        }
-        .not-found {
-            text-align: center;
-            padding: 60px 20px;
-        }
-        .not-found i {
-            font-size: 4rem;
-            color: #dc3545;
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-<body>
-    <!-- Toast Container -->
-    <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+{% extends "base.html" %}
 
-    <div class="container mt-5 clipboard-view-container">
-        {% if file %}
-        <div class="content-card">
-            <div class="content-header">
-                <a href="{{ url_for('shared_clipboard') }}" class="back-link mb-2 d-inline-block">
-                    <i class="fas fa-arrow-left"></i> Back to Shared Clipboard
-                </a>
-                <h1>
-                    {% if file.extension in ['png', 'jpg', 'jpeg', 'gif'] %}
-                        <i class="fas fa-image"></i>
-                    {% else %}
-                        <i class="fas fa-file-alt"></i>
-                    {% endif %}
-                    Shared Content
-                </h1>
-                <div class="content-meta">
-                    <span><i class="fas fa-clock"></i> {{ file.creation_time.strftime('%Y-%m-%d %H:%M:%S') }}</span>
-                    <span class="ml-3"><i class="fas fa-weight"></i> {{ file.size_human }}</span>
-                </div>
-            </div>
-            <div class="content-body">
-                <!-- Action Buttons -->
-                <div class="action-buttons mb-4">
-                    {% if is_text %}
-                    <button id="copy-btn" class="btn btn-primary">
-                        <i class="fas fa-copy"></i> Copy to Clipboard
-                    </button>
-                    {% endif %}
-                    <button id="share-btn" class="btn btn-success" data-url="{{ request.url }}">
-                        <i class="fas fa-link"></i> Copy Link
-                    </button>
-                    <a href="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="btn btn-info" download>
-                        <i class="fas fa-download"></i> Download
-                    </a>
-                    <span id="copy-success" class="copy-success">
-                        <i class="fas fa-check"></i> Copied!
-                    </span>
-                </div>
+{% block title %}Shared Clipboard - {{ file.name if file else 'Not Found' }}{% endblock %}
 
-                <!-- Content Display -->
-                {% if is_text %}
-                <div class="content-text" id="content-text">{{ file.content | e }}</div>
+{% block content %}
+<div class="clipboard-view-container">
+    {% if file %}
+    <div class="content-card">
+        <div class="content-header gradient-accent">
+            <a href="{{ url_for('shared_clipboard') }}" class="back-link mb-2 d-inline-block">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Shared Clipboard
+            </a>
+            <h1>
+                {% if file.extension in ['png', 'jpg', 'jpeg', 'gif'] %}
+                    <i class="fas fa-image" aria-hidden="true"></i>
                 {% else %}
-                <div class="image-container">
-                    <img src="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="content-image" alt="Shared Image">
-                </div>
+                    <i class="fas fa-file-alt" aria-hidden="true"></i>
                 {% endif %}
+                Shared Content
+            </h1>
+            <div class="content-meta">
+                <span><i class="fas fa-clock" aria-hidden="true"></i> {{ file.creation_time.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                <span class="ml-3"><i class="fas fa-weight" aria-hidden="true"></i> {{ file.size_human }}</span>
             </div>
         </div>
-        {% else %}
-        <div class="content-card">
-            <div class="not-found">
-                <i class="fas fa-exclamation-circle"></i>
-                <h2>Content Not Found</h2>
-                <p class="text-muted">This clipboard item may have expired or been deleted.</p>
-                <a href="{{ url_for('shared_clipboard') }}" class="btn btn-primary mt-3">
-                    <i class="fas fa-arrow-left"></i> Go to Shared Clipboard
+        <div class="content-body">
+            <!-- Action Buttons -->
+            <div class="action-buttons mb-4">
+                {% if is_text %}
+                <button id="copy-btn" class="btn btn-primary" aria-label="Copy content to clipboard">
+                    <i class="fas fa-copy" aria-hidden="true"></i> Copy to Clipboard
+                </button>
+                {% endif %}
+                <button id="share-btn" class="btn btn-success" data-url="{{ request.url }}" aria-label="Copy shareable link">
+                    <i class="fas fa-link" aria-hidden="true"></i> Copy Link
+                </button>
+                <a href="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="btn btn-info" download aria-label="Download file">
+                    <i class="fas fa-download" aria-hidden="true"></i> Download
                 </a>
             </div>
+
+            <!-- Content Display -->
+            {% if is_text %}
+            <div class="content-text" id="content-text">{{ file.content | e }}</div>
+            {% else %}
+            <div class="image-container">
+                <img src="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="content-image" alt="Shared Image: {{ file.name }}">
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
+    {% else %}
+    <div class="content-card">
+        <div class="empty-state">
+            <i class="fas fa-exclamation-circle text-danger" aria-hidden="true"></i>
+            <h2>Content Not Found</h2>
+            <p class="text-muted">This clipboard item may have expired or been deleted.</p>
+            <a href="{{ url_for('shared_clipboard') }}" class="btn btn-primary mt-3">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i> Go to Shared Clipboard
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-    <script>
-        // Toast notification function
-        function showToast(message, type = 'success') {
-            const toastContainer = document.getElementById('toast-container');
-            const toastId = 'toast-' + Date.now();
-            const iconClass = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
-            const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+{% block scripts %}
+<script>
+    // Copy content button
+    const copyBtn = document.getElementById('copy-btn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+            const content = document.getElementById('content-text').textContent;
+            try {
+                await navigator.clipboard.writeText(content);
+                showToast('Content copied to clipboard!', 'success');
 
-            const toastHtml = `
-                <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true" data-delay="3000">
-                    <div class="toast-body">
-                        <i class="fas ${iconClass} mr-2"></i>${message}
-                    </div>
-                </div>
-            `;
-            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-            const toastElement = document.getElementById(toastId);
-            $(toastElement).toast('show');
-            setTimeout(() => toastElement.remove(), 3500);
-        }
+                copyBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Copied!';
+                copyBtn.classList.remove('btn-primary');
+                copyBtn.classList.add('btn-success');
 
-        // Copy content button
-        const copyBtn = document.getElementById('copy-btn');
-        if (copyBtn) {
-            copyBtn.addEventListener('click', async () => {
-                const content = document.getElementById('content-text').textContent;
-                try {
-                    await navigator.clipboard.writeText(content);
-                    showToast('Content copied to clipboard!', 'success');
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i class="fas fa-copy" aria-hidden="true"></i> Copy to Clipboard';
+                    copyBtn.classList.remove('btn-success');
+                    copyBtn.classList.add('btn-primary');
+                }, 2000);
+            } catch (err) {
+                showToast('Failed to copy content', 'error');
+            }
+        });
+    }
 
-                    // Visual feedback
-                    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                    copyBtn.classList.remove('btn-primary');
-                    copyBtn.classList.add('btn-success');
+    // Share/Link button
+    const shareBtn = document.getElementById('share-btn');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', async () => {
+            const url = shareBtn.getAttribute('data-url');
+            try {
+                await navigator.clipboard.writeText(url);
+                showToast('Link copied to clipboard!', 'success');
 
-                    setTimeout(() => {
-                        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy to Clipboard';
-                        copyBtn.classList.remove('btn-success');
-                        copyBtn.classList.add('btn-primary');
-                    }, 2000);
-                } catch (err) {
-                    showToast('Failed to copy content', 'error');
-                }
-            });
-        }
+                shareBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Link Copied!';
 
-        // Share/Link button
-        const shareBtn = document.getElementById('share-btn');
-        if (shareBtn) {
-            shareBtn.addEventListener('click', async () => {
-                const url = shareBtn.getAttribute('data-url');
-                try {
-                    await navigator.clipboard.writeText(url);
-                    showToast('Link copied to clipboard!', 'success');
+                setTimeout(() => {
+                    shareBtn.innerHTML = '<i class="fas fa-link" aria-hidden="true"></i> Copy Link';
+                }, 2000);
+            } catch (err) {
+                showToast('Failed to copy link', 'error');
+            }
+        });
+    }
 
-                    // Visual feedback
-                    shareBtn.innerHTML = '<i class="fas fa-check"></i> Link Copied!';
-
-                    setTimeout(() => {
-                        shareBtn.innerHTML = '<i class="fas fa-link"></i> Copy Link';
-                    }, 2000);
-                } catch (err) {
-                    showToast('Failed to copy link', 'error');
-                }
-            });
-        }
-
-        // Double-click to select all content
-        const contentText = document.getElementById('content-text');
-        if (contentText) {
-            contentText.addEventListener('dblclick', () => {
-                const range = document.createRange();
-                range.selectNodeContents(contentText);
-                const selection = window.getSelection();
-                selection.removeAllRanges();
-                selection.addRange(range);
-            });
-        }
-    </script>
-</body>
-</html>
+    // Double-click to select all content
+    const contentText = document.getElementById('content-text');
+    if (contentText) {
+        contentText.addEventListener('dblclick', () => {
+            const range = document.createRange();
+            range.selectNodeContents(contentText);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        });
+    }
+</script>
+{% endblock %}

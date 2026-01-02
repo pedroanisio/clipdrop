@@ -1,339 +1,328 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>File Upload</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
-    <!-- Toast Container -->
-    <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+{% extends "base.html" %}
 
-    <div class="container mt-5">
-        <h1 class="mb-4"><i class="fas fa-cloud-upload-alt"></i> Upload a file</h1>
-        <p>Allowed file types: {{ allowed_extensions | join(', ') }}</p>
-        {% with messages = get_flashed_messages(with_categories=True) %}
-          {% if messages %}
-            <div class="mb-3">
-              {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                  {% if category == 'success' %}
-                    <i class="fas fa-check-circle mr-2"></i>
-                  {% elif category == 'danger' %}
-                    <i class="fas fa-times-circle mr-2"></i>
-                  {% elif category == 'warning' %}
-                    <i class="fas fa-exclamation-triangle mr-2"></i>
-                  {% else %}
-                    <i class="fas fa-info-circle mr-2"></i>
-                  {% endif %}
-                  <span>{{ message }}</span>
-                  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
-                </div>
-              {% endfor %}
-            </div>
+{% block title %}File Upload{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="fas fa-cloud-upload-alt" aria-hidden="true"></i> Upload a file</h1>
+<p>Allowed file types: {{ allowed_extensions | join(', ') }}</p>
+
+{% with messages = get_flashed_messages(with_categories=True) %}
+  {% if messages %}
+    <div class="mb-3">
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {% if category == 'success' %}
+            <i class="fas fa-check-circle mr-2" aria-hidden="true"></i>
+          {% elif category == 'danger' %}
+            <i class="fas fa-times-circle mr-2" aria-hidden="true"></i>
+          {% elif category == 'warning' %}
+            <i class="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i>
+          {% else %}
+            <i class="fas fa-info-circle mr-2" aria-hidden="true"></i>
           {% endif %}
-        {% endwith %}
-        <div class="mb-4">
-            <form id="upload-form" method="post" enctype="multipart/form-data">
-                <div class="form-group">
-                    <input type="file" name="file" id="file-input" class="form-control-file d-none">
-                </div>
-                <div id="drag-drop-area" class="drag-drop-area">
-                    <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
-                    <p>Drag & Drop files here or click to select files</p>
-                </div>
-                <!-- Progress Bar -->
-                <div id="upload-progress" class="progress mt-3" style="display: none;">
-                    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated"
-                         role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                        0%
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary mt-3"><i class="fas fa-upload"></i> Upload</button>
-            </form>
+          <span>{{ message }}</span>
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
         </div>
-        <h2><i class="fas fa-folder-open"></i> Files available for download:</h2>
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Type</th>
-                    <th>File Name</th>
-                    <th>Size</th>
-                    <th>Creation Date</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for file in files %}
-                <tr>
-                    <td>
-                        {% if file.extension in ['png', 'jpg', 'jpeg', 'gif'] %}
-                            <i class="fas fa-file-image text-info" title="Image"></i>
-                        {% elif file.extension == 'pdf' %}
-                            <i class="fas fa-file-pdf text-danger" title="PDF"></i>
-                        {% elif file.extension == 'txt' %}
-                            <i class="fas fa-file-alt text-secondary" title="Text"></i>
-                        {% elif file.extension == 'pst' %}
-                            <i class="fas fa-envelope text-warning" title="Outlook PST"></i>
-                        {% else %}
-                            <i class="fas fa-file text-muted" title="File"></i>
-                        {% endif %}
-                    </td>
-                    <td class="filename-cell" title="{{ file.name }}">{{ file.name }}</td>
-                    <td>{{ file.size_human }}</td>
-                    <td>{{ file.creation_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                    <td>
-                        <div class="btn-group-actions">
-                            <a href="{{ url_for('uploaded_file', filename=file.name) }}" class="btn btn-info btn-sm" title="Download">
-                                <i class="fas fa-download"></i>
-                            </a>
-                            <button class="btn btn-success btn-sm share-btn" data-url="{{ url_for('uploaded_file', filename=file.name, _external=True) }}" title="Share">
-                                <i class="fas fa-share-alt"></i>
-                            </button>
-                            <button class="btn btn-danger btn-sm delete-btn" data-filename="{{ file.name }}" data-type="file" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <div class="clipboard-area">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="mb-0"><i class="fas fa-clipboard"></i> Clipboard</h2>
-                <a href="{{ url_for('shared_clipboard') }}" class="btn btn-outline-primary">
-                    <i class="fas fa-external-link-alt"></i> Open Shared Clipboard
-                </a>
-            </div>
-            <form id="clipboard-form" method="post">
-                <div class="form-group">
-                    <textarea id="clipboard-text" class="form-control" rows="3" placeholder="Paste text here..."></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Clipboard</button>
-            </form>
-            <div id="clipboard-cards">
-                {% for file in clipboard_files %}
-                <div class="card" id="clipboard-{{ loop.index }}">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            {% if file.extension in ['png', 'jpg', 'jpeg', 'gif'] %}
-                                <i class="fas fa-file-image text-info"></i>
-                            {% else %}
-                                <i class="fas fa-file-alt text-secondary"></i>
-                            {% endif %}
-                            <span class="filename-truncate" title="{{ file.name }}">{{ file.name }}</span>
-                        </h5>
-                        <div class="btn-group">
-                            {% if file.name.endswith('.txt') %}
-                            <button class="btn btn-secondary btn-sm" type="button" data-toggle="collapse" data-target="#collapse{{ loop.index }}" aria-expanded="false" aria-controls="collapse{{ loop.index }}">
-                                <i class="fas fa-eye"></i> View
-                            </button>
-                            {% endif %}
-                            <a href="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="btn btn-info btn-sm" title="Download">
-                                <i class="fas fa-download"></i>
-                            </a>
-                            <button class="btn btn-success btn-sm share-btn" data-url="{{ url_for('clipboard_file', filename=file.name, _external=True) }}" title="Share">
-                                <i class="fas fa-share-alt"></i>
-                            </button>
-                            {% if file.name.endswith('.txt') %}
-                            <button class="btn btn-secondary btn-sm copy-btn" data-text="{{ file.content | e }}" title="Copy">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                            {% endif %}
-                            <button class="btn btn-danger btn-sm delete-btn" data-filename="{{ file.name }}" data-type="clipboard" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                        {% if file.name.endswith('.txt') %}
-                        <div class="collapse" id="collapse{{ loop.index }}">
-                            <div class="card card-body mt-2">
-                                <pre>{{ file.content | e }}</pre>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% if not file.name.endswith('.txt') %}
-                        <img src="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="card-img-top mt-2">
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
+      {% endfor %}
     </div>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-    <script>
-        // Toast notification function
-        function showToast(message, type = 'success') {
-            const toastContainer = document.getElementById('toast-container');
-            const toastId = 'toast-' + Date.now();
-            const iconClass = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
-            const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+  {% endif %}
+{% endwith %}
 
-            const toastHtml = `
-                <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true" data-delay="3000">
-                    <div class="toast-body">
-                        <i class="fas ${iconClass} mr-2"></i>${message}
+<!-- Upload Form -->
+<div class="mb-4">
+    <form id="upload-form" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <input type="file" name="file" id="file-input" class="form-control-file d-none">
+        </div>
+        <div id="drag-drop-area" class="drag-drop-area">
+            <i class="fas fa-cloud-upload-alt fa-3x mb-3" aria-hidden="true"></i>
+            <p>Drag & Drop files here or click to select files</p>
+        </div>
+        <div id="upload-progress" class="progress progress-lg mt-3" style="display: none;">
+            <div id="progress-bar" class="progress-bar is-animated"
+                 role="progressbar"
+                 aria-valuenow="0"
+                 aria-valuemin="0"
+                 aria-valuemax="100"
+                 aria-label="Upload progress">
+                0%
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">
+            <i class="fas fa-upload" aria-hidden="true"></i> Upload
+        </button>
+    </form>
+</div>
+
+<!-- Files Table -->
+<h2><i class="fas fa-folder-open" aria-hidden="true"></i> Files available for download:</h2>
+<div class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>File Name</th>
+                <th>Size</th>
+                <th>Creation Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for file in files %}
+            <tr>
+                <td>
+                    {% if file.extension in ['png', 'jpg', 'jpeg', 'gif'] %}
+                        <i class="fas fa-file-image text-info" aria-hidden="true"></i>
+                        <span class="sr-only">Image file</span>
+                    {% elif file.extension == 'pdf' %}
+                        <i class="fas fa-file-pdf text-danger" aria-hidden="true"></i>
+                        <span class="sr-only">PDF file</span>
+                    {% elif file.extension == 'txt' %}
+                        <i class="fas fa-file-alt text-secondary" aria-hidden="true"></i>
+                        <span class="sr-only">Text file</span>
+                    {% elif file.extension == 'pst' %}
+                        <i class="fas fa-envelope text-warning" aria-hidden="true"></i>
+                        <span class="sr-only">Outlook PST file</span>
+                    {% else %}
+                        <i class="fas fa-file text-muted" aria-hidden="true"></i>
+                        <span class="sr-only">File</span>
+                    {% endif %}
+                </td>
+                <td class="filename-cell" title="{{ file.name }}">{{ file.name }}</td>
+                <td>{{ file.size_human }}</td>
+                <td>{{ file.creation_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>
+                    <div class="btn-group-actions">
+                        <a href="{{ url_for('uploaded_file', filename=file.name) }}" class="btn btn-info btn-sm" aria-label="Download {{ file.name }}">
+                            <i class="fas fa-download" aria-hidden="true"></i>
+                        </a>
+                        <button class="btn btn-success btn-sm share-btn" data-url="{{ url_for('uploaded_file', filename=file.name, _external=True) }}" aria-label="Share {{ file.name }}">
+                            <i class="fas fa-share-alt" aria-hidden="true"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm delete-btn" data-filename="{{ file.name }}" data-type="file" aria-label="Delete {{ file.name }}">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Clipboard Section -->
+<div class="clipboard-area">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0"><i class="fas fa-clipboard" aria-hidden="true"></i> Clipboard</h2>
+        <a href="{{ url_for('shared_clipboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-external-link-alt" aria-hidden="true"></i> Open Shared Clipboard
+        </a>
+    </div>
+    <form id="clipboard-form" method="post">
+        <div class="form-group">
+            <label for="clipboard-text" class="sr-only">Clipboard text</label>
+            <textarea id="clipboard-text" class="form-control" rows="3" placeholder="Paste text here..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save" aria-hidden="true"></i> Save Clipboard
+        </button>
+    </form>
+    <div id="clipboard-cards">
+        {% for file in clipboard_files %}
+        <div class="card" id="clipboard-{{ loop.index }}">
+            <div class="card-body">
+                <h5 class="card-title">
+                    {% if file.extension in ['png', 'jpg', 'jpeg', 'gif'] %}
+                        <i class="fas fa-file-image text-info" aria-hidden="true"></i>
+                    {% else %}
+                        <i class="fas fa-file-alt text-secondary" aria-hidden="true"></i>
+                    {% endif %}
+                    <span class="filename-truncate" title="{{ file.name }}">{{ file.name }}</span>
+                </h5>
+                <div class="btn-group">
+                    {% if file.name.endswith('.txt') %}
+                    <button class="btn btn-secondary btn-sm" type="button" data-toggle="collapse" data-target="#collapse{{ loop.index }}" aria-expanded="false" aria-controls="collapse{{ loop.index }}">
+                        <i class="fas fa-eye" aria-hidden="true"></i> View
+                    </button>
+                    {% endif %}
+                    <a href="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="btn btn-info btn-sm" aria-label="Download {{ file.name }}">
+                        <i class="fas fa-download" aria-hidden="true"></i>
+                    </a>
+                    <button class="btn btn-success btn-sm share-btn" data-url="{{ url_for('clipboard_file', filename=file.name, _external=True) }}" aria-label="Share {{ file.name }}">
+                        <i class="fas fa-share-alt" aria-hidden="true"></i>
+                    </button>
+                    {% if file.name.endswith('.txt') %}
+                    <button class="btn btn-secondary btn-sm copy-btn" data-text="{{ file.content | e }}" aria-label="Copy {{ file.name }}">
+                        <i class="fas fa-copy" aria-hidden="true"></i>
+                    </button>
+                    {% endif %}
+                    <button class="btn btn-danger btn-sm delete-btn" data-filename="{{ file.name }}" data-type="clipboard" aria-label="Delete {{ file.name }}">
+                        <i class="fas fa-trash" aria-hidden="true"></i>
+                    </button>
+                </div>
+                {% if file.name.endswith('.txt') %}
+                <div class="collapse" id="collapse{{ loop.index }}">
+                    <div class="card card-body mt-2">
+                        <pre>{{ file.content | e }}</pre>
                     </div>
                 </div>
-            `;
-            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-            const toastElement = document.getElementById(toastId);
-            $(toastElement).toast('show');
-            toastElement.addEventListener('hidden.bs.toast', () => toastElement.remove());
-            setTimeout(() => toastElement.remove(), 3500);
-        }
+                {% endif %}
+                {% if not file.name.endswith('.txt') %}
+                <img src="{{ url_for('clipboard_file_raw', filename=file.name) }}" class="card-img-top mt-2" alt="Clipboard image: {{ file.name }}">
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
 
-        const fileInput = document.getElementById('file-input');
-        const dragDropArea = document.getElementById('drag-drop-area');
-        const uploadForm = document.getElementById('upload-form');
-        const clipboardForm = document.getElementById('clipboard-form');
-        const clipboardText = document.getElementById('clipboard-text');
-        const uploadProgress = document.getElementById('upload-progress');
-        const progressBar = document.getElementById('progress-bar');
+{% block scripts %}
+<script>
+    const fileInput = document.getElementById('file-input');
+    const dragDropArea = document.getElementById('drag-drop-area');
+    const uploadForm = document.getElementById('upload-form');
+    const clipboardForm = document.getElementById('clipboard-form');
+    const clipboardText = document.getElementById('clipboard-text');
+    const uploadProgress = document.getElementById('upload-progress');
+    const progressBar = document.getElementById('progress-bar');
 
-        dragDropArea.addEventListener('click', () => fileInput.click());
+    dragDropArea.addEventListener('click', () => fileInput.click());
 
-        // Upload with progress bar
-        function uploadWithProgress(files) {
-            const formData = new FormData();
-            formData.append('file', files[0]);
+    // Upload with progress bar
+    function uploadWithProgress(files) {
+        const formData = new FormData();
+        formData.append('file', files[0]);
 
-            uploadProgress.style.display = 'block';
-            progressBar.style.width = '0%';
-            progressBar.textContent = '0%';
+        uploadProgress.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
 
-            const xhr = new XMLHttpRequest();
+        const xhr = new XMLHttpRequest();
 
-            xhr.upload.addEventListener('progress', (e) => {
-                if (e.lengthComputable) {
-                    const percentComplete = Math.round((e.loaded / e.total) * 100);
-                    progressBar.style.width = percentComplete + '%';
-                    progressBar.textContent = percentComplete + '%';
-                    progressBar.setAttribute('aria-valuenow', percentComplete);
-                }
-            });
-
-            xhr.addEventListener('load', () => {
-                const response = xhr.response || {};
-                if (xhr.status >= 200 && xhr.status < 300 && response.status === 'success') {
-                    showToast(response.message || 'File successfully uploaded!', 'success');
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showToast(response.message || 'Upload failed. Please try again.', 'error');
-                    uploadProgress.style.display = 'none';
-                }
-            });
-
-            xhr.addEventListener('error', () => {
-                showToast('Upload failed. Please try again.', 'error');
-                uploadProgress.style.display = 'none';
-            });
-
-            xhr.open('POST', '/');
-            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-            xhr.responseType = 'json';
-            xhr.send(formData);
-        }
-
-        fileInput.addEventListener('change', () => {
-            if (fileInput.files.length > 0) {
-                uploadWithProgress(fileInput.files);
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                progressBar.style.width = percentComplete + '%';
+                progressBar.textContent = percentComplete + '%';
+                progressBar.setAttribute('aria-valuenow', percentComplete);
             }
         });
 
-        dragDropArea.addEventListener('dragover', (event) => {
-            event.preventDefault();
-            dragDropArea.classList.add('drag-over');
-        });
-
-        dragDropArea.addEventListener('dragleave', () => {
-            dragDropArea.classList.remove('drag-over');
-        });
-
-        dragDropArea.addEventListener('drop', (event) => {
-            event.preventDefault();
-            dragDropArea.classList.remove('drag-over');
-            if (event.dataTransfer.files.length > 0) {
-                uploadWithProgress(event.dataTransfer.files);
-            }
-        });
-
-        clipboardForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const formData = new FormData();
-            formData.append('clipboard_data', clipboardText.value);
-            const response = await fetch('/clipboard', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
-            if (result.status === 'success') {
-                showToast('Clipboard saved!', 'success');
+        xhr.addEventListener('load', () => {
+            const response = xhr.response || {};
+            if (xhr.status >= 200 && xhr.status < 300 && response.status === 'success') {
+                showToast(response.message || 'File successfully uploaded!', 'success');
                 setTimeout(() => location.reload(), 1000);
             } else {
-                showToast(result.message, 'error');
+                showToast(response.message || 'Upload failed. Please try again.', 'error');
+                uploadProgress.style.display = 'none';
             }
         });
 
-        // Copy to clipboard
-        document.querySelectorAll('.copy-btn').forEach(button => {
-            button.addEventListener('click', (event) => {
-                const text = event.currentTarget.getAttribute('data-text');
-                navigator.clipboard.writeText(text).then(() => {
-                    showToast('Text copied to clipboard!', 'success');
-                }).catch(() => {
-                    showToast('Failed to copy text.', 'error');
-                });
-            });
+        xhr.addEventListener('error', () => {
+            showToast('Upload failed. Please try again.', 'error');
+            uploadProgress.style.display = 'none';
         });
 
-        // Share button - copy URL
-        document.querySelectorAll('.share-btn').forEach(button => {
-            button.addEventListener('click', (event) => {
-                const url = event.currentTarget.getAttribute('data-url');
-                navigator.clipboard.writeText(url).then(() => {
-                    showToast('Link copied to clipboard!', 'success');
-                }).catch(() => {
-                    showToast('Failed to copy link.', 'error');
-                });
+        xhr.open('POST', '/');
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.responseType = 'json';
+        xhr.send(formData);
+    }
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            uploadWithProgress(fileInput.files);
+        }
+    });
+
+    dragDropArea.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        dragDropArea.classList.add('drag-over');
+    });
+
+    dragDropArea.addEventListener('dragleave', () => {
+        dragDropArea.classList.remove('drag-over');
+    });
+
+    dragDropArea.addEventListener('drop', (event) => {
+        event.preventDefault();
+        dragDropArea.classList.remove('drag-over');
+        if (event.dataTransfer.files.length > 0) {
+            uploadWithProgress(event.dataTransfer.files);
+        }
+    });
+
+    clipboardForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData();
+        formData.append('clipboard_data', clipboardText.value);
+        const response = await fetch('/clipboard', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+            showToast('Clipboard saved!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(result.message, 'error');
+        }
+    });
+
+    // Copy to clipboard
+    document.querySelectorAll('.copy-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const text = event.currentTarget.getAttribute('data-text');
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Text copied to clipboard!', 'success');
+            }).catch(() => {
+                showToast('Failed to copy text.', 'error');
             });
         });
+    });
 
-        // Delete functionality
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', async (event) => {
-                const filename = event.currentTarget.getAttribute('data-filename');
-                const type = event.currentTarget.getAttribute('data-type');
+    // Share button - copy URL
+    document.querySelectorAll('.share-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const url = event.currentTarget.getAttribute('data-url');
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('Link copied to clipboard!', 'success');
+            }).catch(() => {
+                showToast('Failed to copy link.', 'error');
+            });
+        });
+    });
 
-                if (!confirm('Are you sure you want to delete this item?')) {
-                    return;
+    // Delete functionality
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', async (event) => {
+            const filename = event.currentTarget.getAttribute('data-filename');
+            const type = event.currentTarget.getAttribute('data-type');
+
+            if (!confirm('Are you sure you want to delete this item?')) {
+                return;
+            }
+
+            const url = type === 'clipboard' ? `/delete/clipboard/${filename}` : `/delete/${filename}`;
+
+            try {
+                const response = await fetch(url, { method: 'DELETE' });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    showToast('Item deleted successfully!', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.message || 'Failed to delete item.', 'error');
                 }
-
-                const url = type === 'clipboard' ? `/delete/clipboard/${filename}` : `/delete/${filename}`;
-
-                try {
-                    const response = await fetch(url, { method: 'DELETE' });
-                    const result = await response.json();
-
-                    if (result.status === 'success') {
-                        showToast('Item deleted successfully!', 'success');
-                        setTimeout(() => location.reload(), 1000);
-                    } else {
-                        showToast(result.message || 'Failed to delete item.', 'error');
-                    }
-                } catch (error) {
-                    showToast('Failed to delete item.', 'error');
-                }
-            });
+            } catch (error) {
+                showToast('Failed to delete item.', 'error');
+            }
         });
-    </script>
-</body>
-</html>
+    });
+</script>
+{% endblock %}

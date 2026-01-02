@@ -1,0 +1,24 @@
+services:
+  web:
+    build: .
+    command: python -m fileuploader
+    volumes:
+      - ./src:/app/src
+      - ./uploads:/app/uploads
+      - ./clipboard:/app/clipboard
+    ports:
+      - "3020:3000"
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - PYTHONPATH=/app/src
+      - UPLOAD_FOLDER=/app/uploads
+      - CLIPBOARD_FOLDER=/app/clipboard
+    env_file:
+      - .env
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

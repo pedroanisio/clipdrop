@@ -197,6 +197,7 @@ def register_routes(app):
             files=files,
             clipboard_files=clipboard_files,
             allowed_extensions=ALLOWED_EXTENSIONS,
+            active_page="files",
         )
 
     @app.route("/uploads/<filename>")
@@ -221,12 +222,19 @@ def register_routes(app):
         """View clipboard content in a nice template."""
         file_path = os.path.join(app.config["CLIPBOARD_FOLDER"], filename)
         if not os.path.exists(file_path):
-            return render_template("clipboard_view.html", file=None, is_text=False)
+            return render_template(
+            "clipboard_view.html", file=None, is_text=False, active_page="clipboard"
+        )
 
         file_props = get_file_properties(filename, app.config["CLIPBOARD_FOLDER"])
         is_text = filename.endswith((".txt", ".md", ".json", ".py", ".html", ".css"))
 
-        return render_template("clipboard_view.html", file=file_props, is_text=is_text)
+        return render_template(
+            "clipboard_view.html",
+            file=file_props,
+            is_text=is_text,
+            active_page="clipboard",
+        )
 
     @app.route("/clipboard/raw/<filename>")
     def clipboard_file_raw(filename):
@@ -261,7 +269,11 @@ def register_routes(app):
             for f in os.listdir(app.config["CLIPBOARD_FOLDER"])
         ]
         clipboard_files.sort(key=lambda x: x["creation_time"], reverse=True)
-        return render_template("shared_clipboard.html", clipboard_files=clipboard_files)
+        return render_template(
+            "shared_clipboard.html",
+            clipboard_files=clipboard_files,
+            active_page="clipboard",
+        )
 
     @app.route("/clipboard", methods=["POST"])
     def clipboard():
