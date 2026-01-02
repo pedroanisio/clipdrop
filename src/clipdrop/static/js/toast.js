@@ -14,7 +14,7 @@
      * @param {string} type - 'success', 'error', or 'info'
      * @param {number} duration - Duration in milliseconds (default: 4000)
      */
-    function showToast(message, type = 'success', duration = 10000) {
+    function showToast(message, type = 'success', duration = 4000) {
         if (!toastContainer) {
             console.warn('Toast container not found');
             return;

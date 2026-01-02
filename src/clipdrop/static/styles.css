@@ -2097,3 +2097,535 @@ h6 {
   opacity: 1;
   visibility: visible;
 }
+
+/* ========================================
+   ENHANCED UX POLISH
+   ======================================== */
+
+/* ---------- Loading Button States ---------- */
+.btn.is-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+.btn.is-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.btn-outline-primary.is-loading::after,
+.btn-outline-secondary.is-loading::after,
+.btn-outline-danger.is-loading::after {
+  border-color: rgba(0, 123, 255, 0.2);
+  border-top-color: var(--color-primary);
+}
+
+/* ---------- Enhanced Button Feedback ---------- */
+.btn-copy-success {
+  background-color: var(--color-success) !important;
+  border-color: var(--color-success) !important;
+  color: var(--color-text-inverse) !important;
+  transition: all var(--duration-fast) var(--easing-default);
+}
+
+.btn-copy-success i {
+  animation: checkPop 0.3s var(--easing-bounce);
+}
+
+@keyframes checkPop {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* ---------- Improved Drag & Drop ---------- */
+.drag-drop-area {
+  position: relative;
+  overflow: hidden;
+}
+
+.drag-drop-area::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg,
+    rgba(0, 123, 255, 0) 0%,
+    rgba(0, 123, 255, 0.05) 100%);
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--easing-default);
+}
+
+.drag-drop-area:hover::before {
+  opacity: 1;
+}
+
+.drag-drop-area.drag-over {
+  border-color: var(--color-success);
+  background-color: rgba(40, 167, 69, 0.08);
+}
+
+.drag-drop-area.drag-over::before {
+  background: linear-gradient(135deg,
+    rgba(40, 167, 69, 0) 0%,
+    rgba(40, 167, 69, 0.1) 100%);
+  opacity: 1;
+}
+
+.drag-drop-area .upload-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-3);
+  transition: transform var(--duration-normal) var(--easing-bounce);
+}
+
+.drag-drop-area:hover .upload-icon,
+.drag-drop-area.drag-over .upload-icon {
+  transform: translateY(-4px);
+}
+
+.drag-drop-area p {
+  margin: 0;
+  font-weight: var(--font-weight-medium);
+}
+
+.drag-drop-area small {
+  display: block;
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ---------- Enhanced Empty States ---------- */
+.empty-state {
+  padding: var(--space-16) var(--space-6);
+}
+
+.empty-state i {
+  font-size: 4rem;
+  margin-bottom: var(--space-5);
+  opacity: 0.3;
+  color: var(--color-primary);
+}
+
+.empty-state h4 {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.empty-state p {
+  color: var(--color-text-muted);
+  max-width: 320px;
+  margin: 0 auto var(--space-5);
+  line-height: var(--line-height-relaxed);
+}
+
+.empty-state .btn {
+  margin-top: var(--space-2);
+}
+
+/* ---------- List Item Animations ---------- */
+.table tbody tr {
+  animation: fadeSlideIn var(--duration-normal) var(--easing-out) backwards;
+}
+
+.table tbody tr:nth-child(1) { animation-delay: 0ms; }
+.table tbody tr:nth-child(2) { animation-delay: 30ms; }
+.table tbody tr:nth-child(3) { animation-delay: 60ms; }
+.table tbody tr:nth-child(4) { animation-delay: 90ms; }
+.table tbody tr:nth-child(5) { animation-delay: 120ms; }
+.table tbody tr:nth-child(6) { animation-delay: 150ms; }
+.table tbody tr:nth-child(7) { animation-delay: 180ms; }
+.table tbody tr:nth-child(8) { animation-delay: 210ms; }
+.table tbody tr:nth-child(n+9) { animation-delay: 240ms; }
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.folder-row {
+  animation: fadeSlideIn var(--duration-normal) var(--easing-out) backwards;
+}
+
+.folder-row:nth-child(1) { animation-delay: 0ms; }
+.folder-row:nth-child(2) { animation-delay: 50ms; }
+.folder-row:nth-child(3) { animation-delay: 100ms; }
+.folder-row:nth-child(n+4) { animation-delay: 150ms; }
+
+/* ---------- Improved Form Focus States ---------- */
+.form-control {
+  transition: border-color var(--duration-fast) var(--easing-default),
+              box-shadow var(--duration-fast) var(--easing-default),
+              background-color var(--duration-fast) var(--easing-default);
+}
+
+.form-control:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15),
+              0 1px 2px rgba(0, 0, 0, 0.05);
+  background-color: var(--color-bg-primary);
+}
+
+.form-control.is-invalid {
+  border-color: var(--color-danger);
+}
+
+.form-control.is-invalid:focus {
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
+}
+
+.form-control.is-valid {
+  border-color: var(--color-success);
+}
+
+.form-control.is-valid:focus {
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.15);
+}
+
+/* ---------- Improved Table Actions ---------- */
+.btn-group-actions {
+  display: inline-flex;
+  gap: var(--space-1);
+  flex-wrap: nowrap;
+}
+
+.btn-group-actions .btn {
+  padding: var(--space-2);
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.btn-group-actions .btn i {
+  font-size: var(--font-size-sm);
+}
+
+/* Clipboard actions - allow wrapping on mobile */
+.clipboard-actions {
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+/* ---------- Inline Edit for Folders ---------- */
+.folder-inline-edit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.folder-inline-edit .form-control {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-sm);
+  min-height: 32px;
+}
+
+.folder-inline-edit .btn {
+  padding: var(--space-1) var(--space-2);
+  min-height: 32px;
+}
+
+/* ---------- Better Touch Targets for Mobile ---------- */
+@media (max-width: 767px) {
+  .btn-group-actions .btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .bottom-nav {
+    padding: var(--space-2) var(--space-4);
+    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav-item {
+    padding: var(--space-3) var(--space-4);
+    min-width: 64px;
+    border-radius: var(--radius-lg);
+    transition: background-color var(--duration-fast) var(--easing-default);
+  }
+
+  .bottom-nav-item:active {
+    background-color: var(--color-bg-secondary);
+  }
+
+  .bottom-nav-item.is-active {
+    background-color: var(--color-primary-light);
+  }
+
+  .bottom-nav-icon {
+    font-size: 22px;
+    margin-bottom: var(--space-1);
+  }
+
+  .bottom-nav-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+  }
+
+  /* Improve table readability on mobile */
+  .table th,
+  .table td {
+    padding: var(--space-3) var(--space-2);
+  }
+
+  .clipboard-actions {
+    justify-content: flex-start;
+    margin-top: var(--space-2);
+  }
+}
+
+/* ---------- Keyboard Shortcut Hints ---------- */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 var(--space-2);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 0 var(--color-border-default);
+}
+
+.shortcut-hint {
+  display: none;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+@media (min-width: 768px) {
+  .shortcut-hint {
+    display: inline-flex;
+  }
+}
+
+/* ---------- Enhanced Card Hover States ---------- */
+.page-card {
+  transition: box-shadow var(--duration-normal) var(--easing-default),
+              transform var(--duration-normal) var(--easing-default);
+}
+
+.clipboard-card,
+.folder-row {
+  transition: background-color var(--duration-fast) var(--easing-default),
+              box-shadow var(--duration-fast) var(--easing-default);
+}
+
+.folder-row:hover {
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  margin: 0 calc(-1 * var(--space-2));
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+}
+
+/* ---------- Improved Toast Styles ---------- */
+.toast {
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toast-success {
+  background: linear-gradient(135deg, var(--color-success) 0%, #1e7e34 100%);
+}
+
+.toast-error {
+  background: linear-gradient(135deg, var(--color-danger) 0%, #bd2130 100%);
+}
+
+.toast-info {
+  background: linear-gradient(135deg, var(--color-info) 0%, #117a8b 100%);
+}
+
+.toast-warning {
+  background: linear-gradient(135deg, var(--color-warning) 0%, #d39e00 100%);
+}
+
+/* ---------- Page Load Animation ---------- */
+.page-card {
+  animation: fadeSlideIn var(--duration-slow) var(--easing-out);
+}
+
+.page-header {
+  animation: fadeSlideIn var(--duration-normal) var(--easing-out);
+}
+
+/* ---------- Action Button Tooltips (CSS only) ---------- */
+.btn-group-actions .btn {
+  position: relative;
+}
+
+.btn-group-actions .btn[aria-label]::before {
+  content: attr(aria-label);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-fast),
+              visibility var(--duration-fast),
+              transform var(--duration-fast);
+  pointer-events: none;
+  z-index: var(--z-tooltip);
+}
+
+.btn-group-actions .btn[aria-label]::after {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--color-text-primary);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-fast), visibility var(--duration-fast);
+  pointer-events: none;
+  z-index: var(--z-tooltip);
+}
+
+.btn-group-actions .btn[aria-label]:hover::before,
+.btn-group-actions .btn[aria-label]:focus::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.btn-group-actions .btn[aria-label]:hover::after,
+.btn-group-actions .btn[aria-label]:focus::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Hide tooltips on mobile - touch doesn't have hover */
+@media (max-width: 767px) {
+  .btn-group-actions .btn[aria-label]::before,
+  .btn-group-actions .btn[aria-label]::after {
+    display: none;
+  }
+}
+
+/* ---------- Subtle Hover Effects ---------- */
+.nav-link {
+  position: relative;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--color-primary);
+  transition: width var(--duration-fast) var(--easing-default),
+              left var(--duration-fast) var(--easing-default);
+}
+
+.nav-link:hover::after,
+.nav-link.is-active::after {
+  width: calc(100% - var(--space-4));
+  left: var(--space-2);
+}
+
+/* ---------- Better Tag Badges ---------- */
+.tag-badge {
+  background: linear-gradient(135deg, var(--color-bg-tertiary) 0%, var(--color-bg-secondary) 100%);
+  border: 1px solid var(--color-border-light);
+  transition: all var(--duration-fast) var(--easing-default);
+}
+
+.tag-badge:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ---------- Progress Bar Enhancement ---------- */
+.progress {
+  background: linear-gradient(90deg, var(--color-bg-tertiary) 0%, var(--color-bg-secondary) 100%);
+}
+
+.progress-bar {
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  animation: progressShine 2s ease-in-out infinite;
+}
+
+@keyframes progressShine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ---------- Improved User Pill ---------- */
+.user-pill {
+  transition: all var(--duration-fast) var(--easing-default);
+}
+
+.user-pill:hover {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-border-default);
+}
+
+/* ---------- Section Dividers ---------- */
+.section-divider {
+  position: relative;
+  border: none;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-border-light) 20%,
+    var(--color-border-light) 80%,
+    transparent 100%
+  );
+}

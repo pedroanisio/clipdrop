@@ -6,6 +6,40 @@
 (function() {
     'use strict';
 
+    /**
+     * Add loading state to a button
+     * @param {HTMLElement} button - The button element
+     */
+    function setButtonLoading(button) {
+        button.classList.add('is-loading');
+        button.disabled = true;
+    }
+
+    /**
+     * Remove loading state from a button
+     * @param {HTMLElement} button - The button element
+     */
+    function clearButtonLoading(button) {
+        button.classList.remove('is-loading');
+        button.disabled = false;
+    }
+
+    /**
+     * Show success feedback on a button
+     * @param {HTMLElement} button - The button element
+     * @param {string} originalHtml - Original button HTML to restore
+     * @param {number} duration - Duration to show success state
+     */
+    function showButtonSuccess(button, originalHtml, duration = 2000) {
+        button.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i>';
+        button.classList.add('btn-copy-success');
+
+        setTimeout(() => {
+            button.innerHTML = originalHtml;
+            button.classList.remove('btn-copy-success');
+        }, duration);
+    }
+
     async function copyToClipboard(text) {
         try {
             await navigator.clipboard.writeText(text);
