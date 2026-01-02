@@ -80,15 +80,20 @@
         clipboardForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const textArea = clipboardForm.querySelector('[name="clipboard_data"]');
+            const submitBtn = clipboardForm.querySelector('button[type="submit"]');
             const text = textArea ? textArea.value.trim() : '';
+
             if (!text) {
                 if (window.showToast) {
                     window.showToast('Please enter some text', 'error');
                 }
+                textArea?.focus();
                 return;
             }
 
             const formData = new FormData(clipboardForm);
+
+            if (submitBtn) setButtonLoading(submitBtn);
 
             try {
                 const response = await fetch('/clipboard', { method: 'POST', body: formData });
@@ -98,11 +103,15 @@
                     if (window.showToast) {
                         window.showToast('Saved to clipboard!', 'success');
                     }
-                    setTimeout(() => location.reload(), 1000);
-                } else if (window.showToast) {
-                    window.showToast(result.message || 'Failed to save', 'error');
+                    setTimeout(() => location.reload(), 800);
+                } else {
+                    if (submitBtn) clearButtonLoading(submitBtn);
+                    if (window.showToast) {
+                        window.showToast(result.message || 'Failed to save', 'error');
+                    }
                 }
             } catch (error) {
+                if (submitBtn) clearButtonLoading(submitBtn);
                 if (window.showToast) {
                     window.showToast('Failed to save', 'error');
                 }
@@ -114,22 +123,15 @@
         document.querySelectorAll('.copy-content-btn').forEach((button) => {
             button.addEventListener('click', async () => {
                 const content = button.getAttribute('data-content');
+                const originalHtml = button.innerHTML;
+
                 const success = await copyToClipboard(content);
                 if (window.showToast) {
                     window.showToast(success ? 'Copied to clipboard!' : 'Failed to copy', success ? 'success' : 'error');
                 }
 
                 if (success) {
-                    const originalHtml = button.innerHTML;
-                    button.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i>';
-                    button.classList.add('btn-success');
-                    button.classList.remove('btn-primary');
-
-                    setTimeout(() => {
-                        button.innerHTML = originalHtml;
-                        button.classList.remove('btn-success');
-                        button.classList.add('btn-primary');
-                    }, 2000);
+                    showButtonSuccess(button, originalHtml);
                 }
             });
         });
@@ -139,9 +141,15 @@
         document.querySelectorAll('.share-btn').forEach((button) => {
             button.addEventListener('click', async () => {
                 const url = button.getAttribute('data-url');
+                const originalHtml = button.innerHTML;
+
                 const success = await copyToClipboard(url);
                 if (window.showToast) {
                     window.showToast(success ? 'Link copied!' : 'Failed to copy link', success ? 'success' : 'error');
+                }
+
+                if (success) {
+                    showButtonSuccess(button, originalHtml);
                 }
             });
         });
@@ -275,30 +283,111 @@
 
     function handleFolderRename() {
         document.querySelectorAll('.folder-rename-btn').forEach((button) => {
-            button.addEventListener('click', async () => {
+            button.addEventListener('click', () => {
                 const folderId = button.getAttribute('data-id');
                 const currentName = button.getAttribute('data-name') || '';
-                const newName = prompt('Rename folder', currentName);
-                if (!newName || !newName.trim()) {
+                const folderRow = button.closest('.folder-row');
+                const folderLink = folderRow?.querySelector('.folder-link');
+
+                if (!folderRow || !folderLink) {
+                    // Fallback to prompt if structure is different
+                    const newName = prompt('Rename folder', currentName);
+                    if (newName && newName.trim()) {
+                        submitFolderRename(folderId, newName.trim());
+                    }
                     return;
                 }
-                try {
-                    const result = await postJson(`/clipboard/folders/${folderId}/rename`, { name: newName.trim() });
-                    if (result.status === 'success') {
-                        if (window.showToast) {
-                            window.showToast('Folder renamed', 'success');
-                        }
-                        setTimeout(() => location.reload(), 500);
-                    } else if (window.showToast) {
-                        window.showToast(result.message || 'Failed to rename folder', 'error');
+
+                // Create inline edit form
+                const originalContent = folderLink.innerHTML;
+                const inlineEdit = document.createElement('div');
+                inlineEdit.className = 'folder-inline-edit';
+                inlineEdit.innerHTML = `
+                    <input type="text" class="form-control" value="${currentName.replace(/"/g, '&quot;')}" aria-label="Folder name">
+                    <button type="button" class="btn btn-primary btn-sm inline-save" aria-label="Save">
+                        <i class="fas fa-check" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm inline-cancel" aria-label="Cancel">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
+                `;
+
+                folderLink.replaceWith(inlineEdit);
+
+                const input = inlineEdit.querySelector('input');
+                const saveBtn = inlineEdit.querySelector('.inline-save');
+                const cancelBtn = inlineEdit.querySelector('.inline-cancel');
+
+                input.focus();
+                input.select();
+
+                async function saveRename() {
+                    const newName = input.value.trim();
+                    if (!newName || newName === currentName) {
+                        cancelRename();
+                        return;
                     }
-                } catch (error) {
-                    if (window.showToast) {
-                        window.showToast('Failed to rename folder', 'error');
+
+                    setButtonLoading(saveBtn);
+                    try {
+                        const result = await postJson(`/clipboard/folders/${folderId}/rename`, { name: newName });
+                        if (result.status === 'success') {
+                            if (window.showToast) {
+                                window.showToast('Folder renamed', 'success');
+                            }
+                            setTimeout(() => location.reload(), 500);
+                        } else {
+                            clearButtonLoading(saveBtn);
+                            if (window.showToast) {
+                                window.showToast(result.message || 'Failed to rename folder', 'error');
+                            }
+                        }
+                    } catch (error) {
+                        clearButtonLoading(saveBtn);
+                        if (window.showToast) {
+                            window.showToast('Failed to rename folder', 'error');
+                        }
                     }
                 }
+
+                function cancelRename() {
+                    const restoredLink = document.createElement('a');
+                    restoredLink.className = 'folder-link';
+                    restoredLink.href = folderLink.href || '#';
+                    restoredLink.innerHTML = originalContent;
+                    inlineEdit.replaceWith(restoredLink);
+                }
+
+                saveBtn.addEventListener('click', saveRename);
+                cancelBtn.addEventListener('click', cancelRename);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        saveRename();
+                    } else if (e.key === 'Escape') {
+                        cancelRename();
+                    }
+                });
             });
         });
+    }
+
+    async function submitFolderRename(folderId, newName) {
+        try {
+            const result = await postJson(`/clipboard/folders/${folderId}/rename`, { name: newName });
+            if (result.status === 'success') {
+                if (window.showToast) {
+                    window.showToast('Folder renamed', 'success');
+                }
+                setTimeout(() => location.reload(), 500);
+            } else if (window.showToast) {
+                window.showToast(result.message || 'Failed to rename folder', 'error');
+            }
+        } catch (error) {
+            if (window.showToast) {
+                window.showToast('Failed to rename folder', 'error');
+            }
+        }
     }
 
     function handleFolderDelete() {
