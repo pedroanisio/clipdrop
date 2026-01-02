@@ -20,8 +20,8 @@ RUN chmod +x scripts/generate_secret.sh && ./scripts/generate_secret.sh
 # Create directories for runtime data
 RUN mkdir -p uploads clipboard
 
-# Make port 3010 available to the world outside this container
-EXPOSE 3010
+# Make port 3000 available to the world outside this container
+EXPOSE 3000
 
 # Run the application with gunicorn
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:3010", "clipdrop.app:create_app()"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:3000", "clipdrop.app:create_app()"]

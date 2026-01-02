@@ -32,7 +32,7 @@ encrypted at rest and are cleaned up automatically every 24 hours.
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.12+
 - uv or pip
 
 ### Environment Variables

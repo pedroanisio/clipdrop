@@ -8,17 +8,20 @@ services:
     dockerfile_path: Dockerfile
     github:
       # Update with your repository details
-      repo: your-org/webapp-fileuploader
+      repo: pedroanisio/clipdrop
       branch: main
       deploy_on_push: true
 
     # HTTP configuration
-    http_port: 3010
+    http_port: 3000
     routes:
       - path: /
 
     # Instance configuration
-    instance_size_slug: basic-xxs
+    # Current slugs: apps-s-1vcpu-0.5gb ($5), apps-s-1vcpu-1gb ($12), apps-s-1vcpu-2gb ($25)
+    # Dedicated: apps-d-1vcpu-0.5gb ($29), apps-d-1vcpu-1gb ($34), etc.
+    # Legacy slugs (basic-xxs, basic-xs, etc.) only work for apps created before May 7, 2024
+    instance_size_slug: apps-s-1vcpu-2gb
     instance_count: 1
 
     # Health check
@@ -26,6 +29,8 @@ services:
       http_path: /login
       initial_delay_seconds: 10
       period_seconds: 30
+      timeout_seconds: 5
+      failure_threshold: 3
 
     # Environment variables
     envs:
@@ -48,10 +53,10 @@ services:
         scope: RUN_TIME
         type: SECRET
 
-      # Database connection (references managed database)
+      # Database connection (set per app to isolate data)
       - key: DATABASE_URL
         scope: RUN_TIME
-        value: ${db.DATABASE_URL}
+        type: SECRET
 
       # Storage configuration for Digital Ocean Spaces
       - key: STORAGE_TYPE
@@ -87,10 +92,12 @@ services:
         scope: RUN_TIME
         value: production
 
-# Managed PostgreSQL database
+# Attach existing managed PostgreSQL database
+# Set production: true and cluster_name to reference your existing managed database
+# The cluster_name must match your existing DigitalOcean managed database cluster name
 databases:
   - name: db
     engine: PG
     version: "16"
-    production: false
-    cluster_name: clipdrop-db
+    production: true
+    cluster_name: your-existing-cluster-name
