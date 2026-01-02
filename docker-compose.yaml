@@ -7,12 +7,12 @@ services:
       - ./uploads:/app/uploads
       - ./clipboard:/app/clipboard
     ports:
-      - "3020:3000"
+      - "3000:3000"
     environment:
       - FLASK_ENV=production
       - UPLOAD_FOLDER=/app/uploads
       - CLIPBOARD_FOLDER=/app/clipboard
-      - DATABASE_URL=postgresql+psycopg://clipdrop:clipdrop@db:5432/clipdrop
+      - DATABASE_URL=postgresql://clipdrop:clipdrop@db:5432/clipdrop
     env_file:
       - .env
     depends_on:
