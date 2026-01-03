@@ -157,7 +157,7 @@ The project includes a ready-to-use App Platform specification in `.do/app.yaml`
 **Prerequisites:**
 1. Create a Digital Ocean Space (for file storage)
 2. Generate Spaces access keys (API > Spaces Keys)
-3. Register a GitHub OAuth app with callback URL: `https://your-app.ondigitalocean.app/login/github/authorized`
+3. Register a GitHub OAuth app with callback URL: `https://clipdrop.is42.io/login/github/authorized`
 
 **Deploy:**
 1. Push to GitHub
